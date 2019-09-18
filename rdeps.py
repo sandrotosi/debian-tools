@@ -30,11 +30,11 @@ def parse_source_pkgs():
     for suite in ['main', 'contrib', 'non-free', ]:
         for x in d822.Sources.iter_paragraphs(open(f"/var/lib/apt/lists/ftp.debian.org_debian_dists_unstable_{suite}_source_Sources")):
             if x['Package'] not in sources:
-                sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x['Maintainer'])
+                sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'])
             else:
-                v, b, bd, bdi, bda, maint = sources[x['Package']]
+                v = sources[x['Package']][0]
                 if x['Version'] > v:
-                    sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x['Maintainer'])
+                    sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'])
 
     latestbinpkgs = set()
     for k in sources.keys():
@@ -43,6 +43,7 @@ def parse_source_pkgs():
     rbdeps = defaultdict(list)
     rbdepsi = defaultdict(list)
     rbdepsa = defaultdict(list)
+    rtstrig = defaultdict(list)
     for src in sources.keys():
         for bd in sources[src][2].split(', '):
             if bd:
@@ -53,13 +54,16 @@ def parse_source_pkgs():
         for bda in sources[src][4].split(', '):
             if bda:
                 rbdepsa[bda.split()[0]].append(src)
+        for tstrig in sources[src][5].split(', '):
+            if tstrig:
+                rtstrig[tstrig.split()[0]].append(src)
 
-    return latestbinpkgs, rbdeps, rbdepsi, rbdepsa, sources
+    return latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources
 
 
-def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, maxlevel):
+def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, maxlevel):
     visited = set()
-    graph = pydot.Dot(graph_type='digraph', simplify=True)
+    graph = pydot.Dot(graph_type='digraph', simplify=False)
     todo = list()
     # list, "heap", of (package-name, level) so we can skip the highest levels down the recursion
     todo.append((pkg_name, 1))
@@ -89,6 +93,8 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, maxl
             graph.add_edge(pydot.Edge(rbdepi, name, label=f"Build-Depends-Indep (lvl={level})"))
         for rbdepa in rbdepsa[name]:
             graph.add_edge(pydot.Edge(rbdepa, name, label=f"Build-Depends-Arch (lvl={level})"))
+        for rtstrigg in rtstrig[name]:
+            graph.add_edge(pydot.Edge(rtstrigg, name, label=f"Testsuite-Triggers (lvl={level})"))
 
     return graph
 
@@ -105,13 +111,13 @@ if __name__ == '__main__':
     if not args.text:
         print('Parsing Sources Index...')
 
-    latestbinpkgs, rbdeps, rbdepsi, rbdepsa, sources = parse_source_pkgs()
+    latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = parse_source_pkgs()
 
     if not args.text:
         print(f"Processing reverse dependencies (with max {args.level} depth level)...")
 
 
-    graph = generate_rdeps_graph(args.pkgs[0], latestbinpkgs, rbdeps, rbdepsi, rbdepsa, args.level)
+    graph = generate_rdeps_graph(args.pkgs[0], latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, args.level)
 
     #with open('image.png', 'wb') as f:
     #    f.write(graph.create(format='png'))
