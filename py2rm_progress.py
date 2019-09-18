@@ -18,10 +18,15 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--destdir', default=None, help='directory where to store the images')
+    parser.add_argument('-l', '--limit', default=None, type=int, help='limit the lists of bugs (py2removal and WNPP) retrieved (for DEBUG)')
     args = parser.parse_args()
 
     print('Retrieving WNPP bugs information...')
-    wnpp_bugs = debianbts.get_status(debianbts.get_bugs('package', 'wnpp'))
+    wnpp_bugs_ids = debianbts.get_bugs('package', 'wnpp')
+    if args.limit:
+        wnpp_bugs_ids = wnpp_bugs_ids[:args.limit]
+    print(f"Found {len(wnpp_bugs_ids)} WNPP bugs, getting status...")
+    wnpp_bugs = debianbts.get_status(wnpp_bugs_ids)
     wnpp = {}
     for wnpp_bug in wnpp_bugs:
         if wnpp_bug.done:
@@ -35,6 +40,8 @@ if __name__ == '__main__':
 
     print('Getting bugs tagged `py2removal`...')
     bugs_by_tag = debianbts.get_usertag('debian-python@lists.debian.org', 'py2removal')['py2removal']
+    if args.limit:
+        bugs_by_tag = bugs_by_tag[:args.limit]
 
     print(f"Found {len(bugs_by_tag)} bugs, getting status...")
     bugs = debianbts.get_status(bugs_by_tag)
