@@ -115,7 +115,10 @@ if __name__ == '__main__':
                 doc.attr(src='sorttable.js')
         with tag('body'):
             with tag('p'):
-                text(f"document generated on {datetime.datetime.now(tz=datetime.timezone.utc)}")
+                text(f"document generated on {datetime.datetime.now(tz=datetime.timezone.utc)} .  (")
+                with tag('a', target='_blank', href='https://github.com/sandrotosi/debian-tools'):
+                    text('source code')
+                text(")")
             with tag('p'):
                 text(f"Total bugs found: {len(bugs)} (open: {len([x for x in bugs if not x.done])}, closed: {len([x for x in bugs if x.done])}).  ")
                 text("See a graphical representation of the progress ")
