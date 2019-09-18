@@ -85,7 +85,7 @@ if __name__ == '__main__':
             if (bdep == 'python' or bdep.startswith(('python2', 'python-', 'libpython2', 'libpython-'))) and not (bdep.endswith('-doc') or bdep.startswith('libboost-python')):
                 brdeps += 1
         if brdeps > 0:
-            data.append((bug.bug_num, 'src:'+bug.source, brdeps, "", sources[bug.source][5], 0, None, wnpp.get(bug.source, None)))
+            data.append((bug.bug_num, 'src:'+bug.source, brdeps, "", sources[bug.source][6], 0, None, wnpp.get(bug.source, None)))
             active = True
         for bin in sources[bug.source][1].replace('\n', '').split(', '):
             try:
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                     active = True
                     graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
                     edges = graph.get_edges()
-                    data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.png", sources[bug.source][5], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
+                    data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.png", sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
                     if len(edges) > 0 and args.destdir:
                         with open(os.path.join(args.destdir, f"{bin}.png"), 'wb') as f:
                             f.write(graph.create(format='png'))
