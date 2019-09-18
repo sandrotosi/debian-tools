@@ -57,7 +57,7 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(args.destdir, 'py2removal_progress.png'))
 
     print('Processing source packages data...')
-    latestbinpkgs, rbdeps, rbdepsi, rbdepsa, sources = rdeps.parse_source_pkgs()
+    latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = rdeps.parse_source_pkgs()
 
     print('Parsing bugs...')
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         # first check the source pkg
         bdeps = []
         brdeps = 0
-        for d in [2, 3, 4]:
+        for d in [2, 3, 4, 5]:
             bdeps.extend(sources[bug.source][d].replace('\n', '').split(', '))
         for bdep in bdeps:
             bdep = bdep.split(' ')[0]
@@ -91,9 +91,9 @@ if __name__ == '__main__':
 
                 # does the package depends on python2 packages?
                 if any([(x[0].target_pkg.name == 'python' or (x[0].target_pkg.name.startswith(('python2', 'python-', 'libpython2', 'libpython'))
-                                                              and not (x[0].target_pkg.name.endswith('-doc') or bdep.startswith('libboost-python')))) for x in deps]):
+                                                              and not (x[0].target_pkg.name.endswith('-doc') or x[0].target_pkg.name.startswith('libboost-python')))) for x in deps]):
                     active = True
-                    graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, 1)
+                    graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
                     edges = graph.get_edges()
                     data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.png", sources[bug.source][5], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
                     if len(edges) > 0 and args.destdir:
