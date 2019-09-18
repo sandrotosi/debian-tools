@@ -70,6 +70,7 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
 
     while len(todo):
         name, level = todo.pop()
+        graph.add_node(pydot.Node(name))
         if name not in latestbinpkgs:
             continue
         if name in visited:
@@ -85,15 +86,20 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
             if rdep.parent_pkg.name not in latestbinpkgs:
                 continue
             if rdep.dep_type in RELS:
+                graph.add_node(pydot.Node(rdep.parent_pkg.name))
                 graph.add_edge(pydot.Edge(rdep.parent_pkg.name, name, label=rdep.dep_type+f" (lvl={level})"))
                 todo.append((rdep.parent_pkg.name, level+1))
         for rbdep in rbdeps[name]:
+            graph.add_node(pydot.Node(rbdep))
             graph.add_edge(pydot.Edge(rbdep, name, label=f"Build-Depends (lvl={level})"))
         for rbdepi in rbdepsi[name]:
+            graph.add_node(pydot.Node(rbdepi))
             graph.add_edge(pydot.Edge(rbdepi, name, label=f"Build-Depends-Indep (lvl={level})"))
         for rbdepa in rbdepsa[name]:
+            graph.add_node(pydot.Node(rbdepa))
             graph.add_edge(pydot.Edge(rbdepa, name, label=f"Build-Depends-Arch (lvl={level})"))
         for rtstrigg in rtstrig[name]:
+            graph.add_node(pydot.Node(rtstrigg))
             graph.add_edge(pydot.Edge(rtstrigg, name, label=f"Testsuite-Triggers (lvl={level})"))
 
     return graph
