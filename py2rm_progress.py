@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
-WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>.*)(?: -- .*)?')
+WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[+-\.a-z0-9]*)(?:$| -- .*)')
 
 if __name__ == '__main__':
 
