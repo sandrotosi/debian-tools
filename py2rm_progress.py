@@ -102,6 +102,8 @@ if __name__ == '__main__':
                     active = True
                     graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
                     edges = graph.get_edges()
+                    for node in graph.get_nodes():
+                        node.set_URL(node.get_name().replace('"', '')+'.svg')
                     data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.svg", sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
                     if len(edges) > 0 and args.destdir:
                         with open(os.path.join(args.destdir, f"{bin}.svg"), 'wb') as f:
