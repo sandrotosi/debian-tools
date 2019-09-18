@@ -102,10 +102,10 @@ if __name__ == '__main__':
                     active = True
                     graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
                     edges = graph.get_edges()
-                    data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.png", sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
+                    data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.svg", sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
                     if len(edges) > 0 and args.destdir:
-                        with open(os.path.join(args.destdir, f"{bin}.png"), 'wb') as f:
-                            f.write(graph.create(format='png'))
+                        with open(os.path.join(args.destdir, f"{bin}.svg"), 'wb') as f:
+                            f.write(graph.create(format='svg'))
             except Exception as e:
                 print(f"error processing {bin}, {e}")
                 import traceback; print(traceback.print_exc())
