@@ -104,8 +104,13 @@ if __name__ == '__main__':
                     deps.extend(pkg.version_list[0].depends_list.get(d, []))
 
                 # does the package depends on python2 packages?
-                if any([(x[0].target_pkg.name == 'python' or (x[0].target_pkg.name.startswith(('python2', 'python-', 'libpython2', 'libpython'))
-                                                              and not (x[0].target_pkg.name.endswith('-doc') or x[0].target_pkg.name.startswith('libboost-python')))) for x in deps]):
+                if any([(x[0].target_pkg.name == 'python' or
+                            (x[0].target_pkg.name.startswith(('python2', 'python-', 'libpython2', 'libpython'))
+                                and not (x[0].target_pkg.name.endswith('-doc')
+                                         or x[0].target_pkg.name.startswith(('libboost-python', 'libpython3'))
+                                        )
+                            )
+                        ) for x in deps]):
                     active = True
                     graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
                     edges = graph.get_edges()
