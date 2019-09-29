@@ -10,9 +10,16 @@ import popcon
 import regex
 from matplotlib import pyplot as plt
 from collections import defaultdict
+import multiprocessing as mp
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[+-\.a-z0-9]*)(?:$| -- .*)')
+# generate an additional level of graphs
+EXTRALEVEL = 2
+
+def log(msg):
+    print(f"{datetime.datetime.now()}    {msg}")
+
 
 if __name__ == '__main__':
 
@@ -22,14 +29,14 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bugs', default=None, nargs='+', type=int, help='only work on the specified bugs, useful for debug')
     args = parser.parse_args()
 
-    print('Retrieving WNPP bugs information...')
+    log('Retrieving WNPP bugs information...')
     if args.bugs:
         wnpp_bugs_ids = args.bugs
     else:
         wnpp_bugs_ids = debianbts.get_bugs('package', 'wnpp')
     if args.limit:
         wnpp_bugs_ids = wnpp_bugs_ids[:args.limit]
-    print(f"Found {len(wnpp_bugs_ids)} WNPP bugs, getting status...")
+    log(f"Found {len(wnpp_bugs_ids)} WNPP bugs, getting status...")
     wnpp_bugs = debianbts.get_status(wnpp_bugs_ids)
     wnpp = {}
     for wnpp_bug in wnpp_bugs:
@@ -40,9 +47,9 @@ if __name__ == '__main__':
             tag, src = m.groups()
             wnpp[src] = (tag, wnpp_bug.bug_num)
         else:
-            print(f"Badly formatted WNPP bug: retitle {wnpp_bug.bug_num} \"{wnpp_bug.subject}\"")
+            log(f"Badly formatted WNPP bug: retitle {wnpp_bug.bug_num} \"{wnpp_bug.subject}\"")
 
-    print('Getting bugs tagged `py2removal`...')
+    log('Getting bugs tagged `py2removal`...')
     if args.bugs:
         bugs_by_tag = args.bugs
     else:
@@ -50,7 +57,7 @@ if __name__ == '__main__':
     if args.limit:
         bugs_by_tag = bugs_by_tag[:args.limit]
 
-    print(f"Found {len(bugs_by_tag)} bugs, getting status...")
+    log(f"Found {len(bugs_by_tag)} bugs, getting status...")
     bugs = debianbts.get_status(bugs_by_tag)
 
     # generate a progress graph
@@ -70,10 +77,10 @@ if __name__ == '__main__':
     plt.grid()
     plt.savefig(os.path.join(args.destdir, 'py2removal_progress.png'))
 
-    print('Processing source packages data...')
+    log('Processing source packages data...')
     latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = rdeps.parse_source_pkgs()
 
-    print('Parsing bugs...')
+    log('Parsing bugs...')
 
     data = []
     for bug in bugs:
@@ -92,7 +99,7 @@ if __name__ == '__main__':
             if (bdep == 'python' or bdep.startswith(('python2', 'python-', 'libpython2', 'libpython-'))) and not (bdep.endswith('-doc') or bdep.startswith('libboost-python')):
                 brdeps += 1
         if brdeps > 0:
-            data.append((bug.bug_num, 'src:'+bug.source, brdeps, "", sources[bug.source][6], 0, None, wnpp.get(bug.source, None)))
+            data.append((bug.bug_num, 'src:'+bug.source, brdeps, None, sources[bug.source][6], 0, None, wnpp.get(bug.source, None), None, None))
             active = True
         for bin in sources[bug.source][1].replace('\n', '').split(', '):
             try:
@@ -112,23 +119,59 @@ if __name__ == '__main__':
                             )
                         ) for x in deps]):
                     active = True
-                    graph = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
-                    edges = graph.get_edges()
-                    for node in graph.get_nodes():
-                        node.set_URL(node.get_name().replace('"', '')+'.svg')
-                    data.append((bug.bug_num, bin, len(set(edges)), f"{bin}.svg", sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None)))
-                    if len(edges) > 0 and args.destdir:
-                        with open(os.path.join(args.destdir, f"{bin}.svg"), 'wb') as f:
-                            f.write(graph.create(format='svg'))
+                    graph_1 = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
+                    graph_N = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, EXTRALEVEL)
+                    data.append((bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N))
             except Exception as e:
-                print(f"error processing {bin}, {e}")
-                import traceback; print(traceback.print_exc())
-                print(f"{bug.bug_num}\t{bin}\t{len(set(edges))}")
+                log(f"error processing {bin}, {e}")
+                import traceback; log(traceback.print_exc())
+                log(f"{bug.bug_num}\t{bin}")
         if not active:
-            print(f"{bug.bug_num} has no py2 dependencies?")
+            log(f"{bug.bug_num} has no py2 dependencies?")
 
+    log('Pre-processing graph for image generation...')
+
+    # get a list of packages for which we have a graph, so we dont generated 404 URLs
+    packages = list()
+    for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N in data:
+        if graph_1 and len(graph_1.get_edges()):
+            packages.append(pkg)
+
+    work = []
+    # produce text xdot for the graphs, easier to pass to mp (Dot objs are note pickleble)
+    for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N in data:
+        if not graph_1 or pkg == 'python':
+            continue
+        edges_1 = graph_1.get_edges()
+        if len(edges_1) > 0 and args.destdir:
+            # level 1 image
+            for node_1 in graph_1.get_nodes():
+                node_name = node_1.get_name().replace('"', '')
+                # create a link only if linking to a package part of the resultset
+                if node_name in packages:
+                    node_1.set_URL(node_name+'_1.svg')
+            work.append((graph_1.create_xdot().decode(), os.path.join(args.destdir, f"{pkg}_1.svg")))
+            # level EXTRA image
+            for node_N in graph_N.get_nodes():
+                node_name = node_N.get_name().replace('"', '')
+                # create a link only if linking to a package part of the resultset
+                if node_name in packages:
+                    node_N.set_URL(node_name+f'_{EXTRALEVEL}.svg')
+            work.append((graph_N.create_xdot().decode(), os.path.join(args.destdir, f"{pkg}_{EXTRALEVEL}.svg")))
+
+    def write_svg_graph(xdot, outfile):
+        import pydot
+        if __name__ == '__main__':
+            graph = pydot.graph_from_dot_data(xdot)[0]
+        with open(outfile, 'wb') as f:
+            f.write(graph.create(format='svg'))
+
+    log('Generating images...')
+    with mp.Pool(mp.cpu_count()-2) as p:
+        p.starmap(write_svg_graph, work)
+
+    log('Generating HTML page...')
     doc, tag, text = yattag.Doc().tagtext()
-
     with tag('html'):
         with tag('head'):
             with tag('script'):
@@ -165,8 +208,10 @@ if __name__ == '__main__':
                     with tag('th'):
                         with tag('b'): text('# rdeps')
                     with tag('th'):
-                        with tag('b'): text('Rdeps graph')
-                for bugno, pkg, rdeps, imagename, maint, fdeps, popconn, wnppp in sorted(data, key=lambda x: (x[2], x[5])):
+                        with tag('b'): text('Rdeps graph (level 1)')
+                    with tag('th'):
+                        with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
+                for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N in sorted(data, key=lambda x: (x[2], x[5])):
                     with tag('tr'):
                         with tag('td'):
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{bugno}"):
@@ -193,13 +238,22 @@ if __name__ == '__main__':
                         with tag('td'):
                             text(maint)
                         with tag('td'): text(fdeps)
-                        with tag('td'): text(rdeps)
+                        with tag('td'): text(edges_1)
                         with tag('td'):
                             if pkg.startswith('src:'):
                                 text('no graph for src pkgs (yet)')
                             else:
-                                if rdeps > 0:
-                                    with tag('a', target='_blank', href=imagename):
+                                if edges_1 > 0:
+                                    with tag('a', target='_blank', href=f"{pkg}_1.svg"):
+                                        text('graph')
+                                else:
+                                    text('no rdeps')
+                        with tag('td'):
+                            if pkg.startswith('src:'):
+                                text('no graph for src pkgs (yet)')
+                            else:
+                                if edges_N > 0:
+                                    with tag('a', target='_blank', href=f"{pkg}_{EXTRALEVEL}.svg"):
                                         text('graph')
                                 else:
                                     text('no rdeps')
