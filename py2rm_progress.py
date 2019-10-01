@@ -96,7 +96,7 @@ if __name__ == '__main__':
             bdeps.extend(sources[bug.source][d].replace('\n', '').split(', '))
         for bdep in bdeps:
             bdep = bdep.split(' ')[0]
-            if (bdep == 'python' or bdep.startswith(('python2', 'python-', 'libpython2', 'libpython-'))) and not (bdep.endswith('-doc') or bdep.startswith('libboost-python')):
+            if (bdep.startswith(('python', 'libpython'))) and not (bdep.endswith(('-doc', '-examples')) or bdep.startswith(('python3', 'libboost-python', 'libpython3'))):
                 brdeps += 1
         if brdeps > 0:
             data.append((bug.bug_num, 'src:'+bug.source, brdeps, None, sources[bug.source][6], 0, None, wnpp.get(bug.source, None), None, None))
@@ -109,14 +109,11 @@ if __name__ == '__main__':
                 deps = []
                 for d in ['Depends', 'Recommends', 'Suggests']:
                     deps.extend(pkg.version_list[0].depends_list.get(d, []))
-
                 # does the package depends on python2 packages?
-                if any([(x[0].target_pkg.name == 'python' or
-                            (x[0].target_pkg.name.startswith(('python2', 'python-', 'libpython2', 'libpython'))
-                                and not (x[0].target_pkg.name.endswith('-doc')
-                                         or x[0].target_pkg.name.startswith(('libboost-python', 'libpython3'))
-                                        )
-                            )
+                if any([(x[0].target_pkg.name.startswith(('python', 'libpython'))
+                            and not (x[0].target_pkg.name.endswith(('-doc', '-examples'))
+                                     or x[0].target_pkg.name.startswith(('libboost-python', 'libpython3', 'python3'))
+                                    )
                         ) for x in deps]):
                     active = True
                     graph_1 = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
