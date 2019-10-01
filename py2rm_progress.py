@@ -13,7 +13,7 @@ from collections import defaultdict
 import multiprocessing as mp
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
-WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[+-\.a-z0-9]*)(?:$| -- .*)')
+WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
 # generate an additional level of graphs
 EXTRALEVEL = 2
 
