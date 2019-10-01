@@ -158,8 +158,8 @@ if __name__ == '__main__':
 
     def write_svg_graph(xdot, outfile):
         import pydot
-        if __name__ == '__main__':
-            graph = pydot.graph_from_dot_data(xdot)[0]
+        graph = pydot.graph_from_dot_data(xdot)[0]
+        graph.set_rankdir('RL')
         with open(outfile, 'wb') as f:
             f.write(graph.create(format='svg'))
 
