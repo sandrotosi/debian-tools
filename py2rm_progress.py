@@ -11,6 +11,7 @@ import regex
 from matplotlib import pyplot as plt
 from collections import defaultdict
 import multiprocess as mp
+import urllib
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
@@ -166,6 +167,12 @@ if __name__ == '__main__':
         p.starmap(write_svg_graph, work)
 
     log('Generating HTML page...')
+
+    #make sure we have the sorttable javascript file
+    sorttablefile = os.path.join(args.destdir, 'sorttable.js')
+    if not os.path.isfile(sorttablefile):
+        urllib.request.urlretrieve('https://kryogenix.org/code/browser/sorttable/sorttable.js', sorttablefile)
+
     doc, tag, text = yattag.Doc().tagtext()
     with tag('html'):
         with tag('head'):
