@@ -10,7 +10,7 @@ import popcon
 import regex
 from matplotlib import pyplot as plt
 from collections import defaultdict
-import multiprocessing as mp
+import multiprocess as mp
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
@@ -147,19 +147,17 @@ if __name__ == '__main__':
                 # create a link only if linking to a package part of the resultset
                 if node_name in packages:
                     node_1.set_URL(node_name+'_1.svg')
-            work.append((graph_1.create_xdot().decode(), os.path.join(args.destdir, f"{pkg}_1.svg")))
+            work.append((graph_1, os.path.join(args.destdir, f"{pkg}_1.svg")))
             # level EXTRA image
             for node_N in graph_N.get_nodes():
                 node_name = node_N.get_name().replace('"', '')
                 # create a link only if linking to a package part of the resultset
                 if node_name in packages:
                     node_N.set_URL(node_name+f'_{EXTRALEVEL}.svg')
-            work.append((graph_N.create_xdot().decode(), os.path.join(args.destdir, f"{pkg}_{EXTRALEVEL}.svg")))
+            work.append((graph_N, os.path.join(args.destdir, f"{pkg}_{EXTRALEVEL}.svg")))
 
-    def write_svg_graph(xdot, outfile):
-        import pydot
-        graph = pydot.graph_from_dot_data(xdot)[0]
-        graph.set_rankdir('RL')
+    def write_svg_graph(graph, outfile):
+        graph.rankdir = 'RL'
         with open(outfile, 'wb') as f:
             f.write(graph.create(format='svg'))
 
