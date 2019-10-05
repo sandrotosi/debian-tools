@@ -100,9 +100,10 @@ if __name__ == '__main__':
             if (bdep.startswith(('python', 'libpython'))) and not (bdep.endswith(('-doc', '-examples')) or bdep.startswith(('python3', 'libboost-python', 'libpython3'))):
                 brdeps += 1
         if brdeps > 0:
-            data.append((bug.bug_num, 'src:'+bug.source, brdeps, None, sources[bug.source][6], 0, None, wnpp.get(bug.source, None), None, None))
+            data.append((bug.bug_num, 'src:'+bug.source, brdeps, None, sources[bug.source][6], 0, None, wnpp.get(bug.source, None), None, None, None))
             active = True
-        for bin in sources[bug.source][1].replace('\n', '').split(', '):
+        bins = sources[bug.source][1].replace('\n', '').split(', ')
+        for bin in bins:
             try:
                 if bin not in rdeps.cache:
                     continue
@@ -119,7 +120,15 @@ if __name__ == '__main__':
                     active = True
                     graph_1 = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1)
                     graph_N = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, EXTRALEVEL)
-                    data.append((bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N))
+
+                    # very brutal heuristic to know if debian has a py3k package already
+                    py3k_pkgs_avail = None
+                    if bin.startswith('python-'):
+                        if bin.replace('python-', 'python3-') in latestbinpkgs:
+                            py3k_pkgs_avail = True
+                        else:
+                            py3k_pkgs_avail = False
+                    data.append((bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, sources[bug.source][6], len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
                 import traceback; log(traceback.print_exc())
@@ -131,13 +140,13 @@ if __name__ == '__main__':
 
     # get a list of packages for which we have a graph, so we dont generated 404 URLs
     packages = list()
-    for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N in data:
+    for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in data:
         if graph_1 and len(graph_1.get_edges()):
             packages.append(pkg)
 
     work = []
     # produce text xdot for the graphs, easier to pass to mp (Dot objs are note pickleble)
-    for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N in data:
+    for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in data:
         if not graph_1 or pkg == 'python':
             continue
         edges_1 = graph_1.get_edges()
@@ -200,6 +209,8 @@ if __name__ == '__main__':
                     with tag('th'):
                         with tag('b'): text('Binary pkg')
                     with tag('th'):
+                        with tag('b'): text('py3k?')
+                    with tag('th'):
                         with tag('b'): text('Popcon')
                     with tag('th'):
                         with tag('b'): text('WNPP')
@@ -213,7 +224,7 @@ if __name__ == '__main__':
                         with tag('b'): text('Rdeps graph (level 1)')
                     with tag('th'):
                         with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
-                for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N in sorted(data, key=lambda x: (x[2], x[5])):
+                for bugno, pkg, edges_1, graph_1, maint, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in sorted(data, key=lambda x: (x[2], x[5])):
                     with tag('tr'):
                         with tag('td'):
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{bugno}"):
@@ -225,6 +236,13 @@ if __name__ == '__main__':
                             else:
                                 with tag('a', target='_blank', href=f"https://packages.debian.org/unstable/{pkg}"):
                                     text(pkg)
+                        with tag('td'):
+                            if py3k_pkgs_avail is None:
+                                text('')
+                            elif py3k_pkgs_avail:
+                                text('yes')
+                            else:
+                                text('no')
                         with tag('td'):
                             if popconn:
                                 text(popconn)
