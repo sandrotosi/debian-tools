@@ -9,6 +9,7 @@ import datetime
 import popcon
 import regex
 from matplotlib import pyplot as plt
+import matplotlib.dates as mdates
 from collections import defaultdict
 import multiprocess as mp
 import urllib
@@ -73,7 +74,12 @@ if __name__ == '__main__':
         kdates.append(kdate)
         total = total - d[kdate]  # we remove the amount of bugs closed that day from the total (whole bugs)
         vbugs.append(total)
-    plt.plot(kdates, vbugs)
+    plt_locator = mdates.DayLocator(interval=5)
+    plt_formatter = mdates.AutoDateFormatter(plt_locator)
+    fig, ax = plt.subplots()
+    ax.xaxis.set_major_locator(plt_locator)
+    ax.xaxis.set_major_formatter(plt_formatter)
+    ax.plot(kdates, vbugs)
     plt.xticks(rotation=18, ha='right')
     plt.grid()
     plt.savefig(os.path.join(args.destdir, 'py2removal_progress.png'))
