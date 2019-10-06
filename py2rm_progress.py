@@ -173,7 +173,7 @@ if __name__ == '__main__':
             work.append((graph_N, os.path.join(args.destdir, f"{pkg}_{EXTRALEVEL}.svg")))
 
     def write_svg_graph(graph, outfile):
-        graph.rankdir = 'RL'
+        graph.set_rankdir('RL')
         with open(outfile, 'wb') as f:
             f.write(graph.create(format='svg'))
 
