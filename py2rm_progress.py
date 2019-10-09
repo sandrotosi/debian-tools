@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
                     # very brutal heuristic to know if debian has a py3k package already
                     py3k_pkgs_avail = None
-                    if bin.startswith('python-'):
+                    if bin.startswith('python-') and not bin.endswith(('-doc', 'dbg')):
                         if bin.replace('python-', 'python3-') in latestbinpkgs:
                             py3k_pkgs_avail = True
                         else:
