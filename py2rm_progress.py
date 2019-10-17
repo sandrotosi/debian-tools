@@ -233,7 +233,7 @@ if __name__ == '__main__':
                         with tag('b'): text('Rdeps graph (level 1)')
                     with tag('th'):
                         with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
-                for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in sorted(data, key=lambda x: (x[2], x[5])):
+                for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in sorted(data, key=lambda x: (x[2], x[6])):
                     with tag('tr'):
                         with tag('td'):
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{bugno}"):
