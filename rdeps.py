@@ -30,11 +30,11 @@ def parse_source_pkgs():
     for suite in ['main', 'contrib', 'non-free', ]:
         for x in d822.Sources.iter_paragraphs(open(f"/var/lib/apt/lists/ftp.debian.org_debian_dists_unstable_{suite}_source_Sources")):
             if x['Package'] not in sources:
-                sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'])
+                sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''))
             else:
                 v = sources[x['Package']][0]
                 if x['Version'] > v:
-                    sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'])
+                    sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''))
 
     latestbinpkgs = set()
     for k in sources.keys():
