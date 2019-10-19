@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 from collections import defaultdict
 import multiprocess as mp
-import urllib
+import subprocess
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
@@ -186,17 +186,41 @@ if __name__ == '__main__':
 
     log('Generating HTML page...')
 
-    #make sure we have the sorttable javascript file
-    sorttablefile = os.path.join(args.destdir, 'sorttable.js')
-    if not os.path.isfile(sorttablefile):
-        urllib.request.urlretrieve('https://kryogenix.org/code/browser/sorttable/sorttable.js', sorttablefile)
+    if not os.path.isdir(args.destdir):
+        os.makedirs(args.destdir)
+    # make sure we have a copy of tablefilter, https://www.tablefilter.com; it's not pretty, but it works
+    tablefilter_dir = os.path.join(args.destdir, 'TableFilter')
+    if not os.path.isdir(tablefilter_dir):
+        subprocess.call('git clone --quiet --depth 1 https://github.com/koalyptus/TableFilter %s' % tablefilter_dir, shell=True)
+    else:
+        subprocess.call('git -C %s pull' % tablefilter_dir, shell=True)
+
+    tablefilter_config = '''
+var tfConfig = {
+    base_path: '%s',
+    alternate_rows: true,
+    rows_counter: {
+        text: 'Total entries: '
+    },
+    btn_reset: {
+        text: 'Clear'
+    },
+    loader: true,
+    no_results_message: true,
+    sticky_headers: true,
+
+    extensions: [{ name: 'sort' }]
+};
+var tf = new TableFilter('py2rm-table', tfConfig);
+tf.init();
+    ''' % 'TableFilter/dist/tablefilter/'
 
     doc, tag, text = yattag.Doc().tagtext()
     with tag('html'):
         with tag('head'):
             with tag('script'):
                 doc.attr(('type', 'text/javascript'))
-                doc.attr(src='sorttable.js')
+                doc.attr(src='TableFilter/dist/tablefilter/tablefilter.js')
         with tag('body'):
             with tag('p'):
                 text(f"document generated on {datetime.datetime.now(tz=datetime.timezone.utc)} .  (")
@@ -209,30 +233,29 @@ if __name__ == '__main__':
                 with tag('a', target='_blank', href='py2removal_progress.png'):
                     text('here')
                 text(' (only bugs closed after 2019-07-01).')
-            with tag('p'):
-                text(f"Total entries below: {len(data)}")
-            with tag('table', border='1', klass="sortable"):
-                with tag('tr'):
-                    with tag('th'):
-                        with tag('b'): text('Bug No.')
-                    with tag('th'):
-                        with tag('b'): text('Binary pkg')
-                    with tag('th'):
-                        with tag('b'): text('py3k?')
-                    with tag('th'):
-                        with tag('b'): text('Popcon')
-                    with tag('th'):
-                        with tag('b'): text('WNPP')
-                    with tag('th'):
-                        with tag('b'): text('Maintainer/Uploaders')
-                    with tag('th'):
-                        with tag('b'): text('# deps')
-                    with tag('th'):
-                        with tag('b'): text('# rdeps')
-                    with tag('th'):
-                        with tag('b'): text('Rdeps graph (level 1)')
-                    with tag('th'):
-                        with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
+            with tag('table', id="py2rm-table", klass="TF"):
+                with tag('thead'):
+                    with tag('tr'):
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('Bug No.')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('Binary pkg')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('py3k?')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('Popcon')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('WNPP')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('Maintainer/Uploaders')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('# deps')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('# rdeps')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('Rdeps graph (level 1)')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
                 for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in sorted(data, key=lambda x: (x[2], x[6])):
                     with tag('tr'):
                         with tag('td'):
@@ -290,6 +313,8 @@ if __name__ == '__main__':
                                         text('graph')
                                 else:
                                     text('no rdeps')
+            with tag('script'):
+                text(tablefilter_config)
 
     with open('%s/index.html' % args.destdir, 'w') as f:
         f.write(doc.getvalue())
