@@ -62,6 +62,11 @@ if __name__ == '__main__':
     log(f"Found {len(bugs_by_tag)} bugs, getting status...")
     bugs = debianbts.get_status(bugs_by_tag)
 
+    # get the tags, so we can show them on the table
+    bugs_tags = {}
+    for bug in bugs:
+        bugs_tags[bug.bug_num] = bug.tags
+
     # generate a progress graph
     d = defaultdict(int)
     for bug in bugs:
@@ -261,6 +266,13 @@ tf.init();
                         with tag('td'):
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{bugno}"):
                                 text(bugno)
+                            btags = ''
+                            if 'pending' in bugs_tags[bugno]:
+                                btags += 'P'
+                            if 'pending' in bugs_tags[bugno]:
+                                btags += '+'
+                            if btags:
+                                text(' ' + btags)
                         with tag('td'):
                             if pkg.startswith('src:'):
                                 with tag('a', target='_blank', href=f"https://packages.debian.org/source/sid/{pkg.split(':')[1]}"):
