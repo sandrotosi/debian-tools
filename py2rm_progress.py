@@ -103,6 +103,7 @@ if __name__ == '__main__':
         active = False  # is this bug still active, ie a src pkg with still bin pkgs depending on py2?
         # first check the source pkg
         bdeps = []
+        # these are not really reverse build depends, these are the packages the src pkg b-deps on
         brdeps = 0
         for d in [2, 3, 4, 5]:
             bdeps.extend(sources[bug.source][d].replace('\n', '').split(', '))
@@ -111,7 +112,7 @@ if __name__ == '__main__':
             if (bdep.startswith(('python', 'libpython'))) and not (bdep.endswith(('-doc', '-examples')) or bdep.startswith(('python3', 'libboost-python', 'libpython3'))):
                 brdeps += 1
         if brdeps > 0:
-            data.append((bug.bug_num, 'src:'+bug.source, brdeps, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), 0, None, wnpp.get(bug.source, None), None, None, None))
+            data.append((bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None))
             active = True
         bins = sources[bug.source][1].replace('\n', '').split(', ')
         for bin in bins:
