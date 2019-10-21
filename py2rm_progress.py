@@ -199,7 +199,7 @@ if __name__ == '__main__':
     if not os.path.isdir(tablefilter_dir):
         subprocess.call('git clone --quiet --depth 1 https://github.com/koalyptus/TableFilter %s' % tablefilter_dir, shell=True)
     else:
-        subprocess.call('git -C %s pull' % tablefilter_dir, shell=True)
+        subprocess.call('git -C %s pull --quiet' % tablefilter_dir, shell=True)
 
     tablefilter_config = '''
 var tfConfig = {
