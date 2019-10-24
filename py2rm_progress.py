@@ -13,6 +13,9 @@ import matplotlib.dates as mdates
 from collections import defaultdict
 import multiprocess as mp
 import subprocess
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
@@ -29,6 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('--destdir', default=None, help='directory where to store the images')
     parser.add_argument('-l', '--limit', default=None, type=int, help='limit the lists of bugs (py2removal and WNPP) retrieved (for DEBUG)')
     parser.add_argument('-b', '--bugs', default=None, nargs='+', type=int, help='only work on the specified bugs, useful for debug')
+    parser.add_argument('--no-blocks', default=False, action="store_true", help='dont sent blocks updates to control@ (for DEBUG)')
     args = parser.parse_args()
 
     log('Retrieving WNPP bugs information...')
@@ -64,8 +68,17 @@ if __name__ == '__main__':
 
     # get the tags, so we can show them on the table
     bugs_tags = {}
+    bugs_blockedby = {}
+    bugs_by_source = {}
+    sources_by_bug = {}
+    bugs_done = set()
     for bug in bugs:
         bugs_tags[bug.bug_num] = bug.tags
+        bugs_blockedby[bug.bug_num] = bug.blockedby
+        bugs_by_source[bug.source] = bug.bug_num
+        sources_by_bug[bug.bug_num] = bug.source
+        if bug.done:
+            bugs_done.add(bug.bug_num)
 
     # generate a progress graph
     d = defaultdict(int)
@@ -91,6 +104,12 @@ if __name__ == '__main__':
 
     log('Processing source packages data...')
     latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = rdeps.parse_source_pkgs()
+
+    # what source produces a binary
+    bin_to_src = {}
+    for source in sources:
+        for bin in sources[source][1].replace('\n', '').split(', '):
+            bin_to_src[bin] = source
 
     log('Parsing bugs...')
 
@@ -331,3 +350,52 @@ tf.init();
 
     with open('%s/index.html' % args.destdir, 'w') as f:
         f.write(doc.getvalue())
+
+    # we can opt-out from sending mails to control@, useful for debug
+    if not args.no_blocks:
+        log('Generating control@ email to update block information...')
+        all_bugs_blocks = defaultdict(set)
+        for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in data:
+            if pkg.startswith('src:'):
+                current_blocks = set(bugs_blockedby.get(bugs_by_source[pkg.replace('src:', '')], []))
+            else:
+                current_blocks = set(bugs_blockedby.get(bugs_by_source[bin_to_src[pkg]], []))
+            all_blocks = set()
+            if edges_1 > 0:
+                for edge in graph_1.get_edges():
+                    edgesrc = edge.get_source().replace('"', '')
+                    if edge.get_label().lower().startswith(('build', 'testsuite')):
+                        src = edgesrc
+                    else:
+                        src = bin_to_src[edgesrc]
+                    if src not in bugs_by_source.keys():
+                        log(f"ERROR: {src} found but no bug is open for that source")
+                    else:
+                        current_bug = bugs_by_source[src]
+                        if current_bug not in bugs_done:
+                            all_blocks.add(current_bug)
+            new_blocks = all_blocks - current_blocks - set([bugno,])
+            all_bugs_blocks[bugno] = all_bugs_blocks[bugno].union(new_blocks)
+
+        blocks_mail_body = []
+        for bug, blocks in all_bugs_blocks.items():
+            if not blocks:
+                continue
+            blocks_mail_body.append(f"# {sources_by_bug[bug]}")
+            # there is a limit of 998 chars for a mail line, so let's split in chunks of N bugs and produce multiple commands
+            N = 20
+            lblocks = list(blocks)
+            for chunk in  [lblocks[i * N:(i + 1) * N] for i in range((len(lblocks) + N - 1) // N )]:
+                blocks_mail_body.append(f'block {bug} by {" ".join(map(str, chunk))}')
+
+        # send the mail to control@, only if we have something to send
+        if blocks_mail_body:
+            mail_preamble = ['# Part of the effort for the removal of python from bullseye', '#  * https://wiki.debian.org/Python/2Removal', '#  * http://sandrotosi.me/debian/py2removal/index.html', '']
+            s = smtplib.SMTP(host='localhost', port=25)
+            msg = MIMEMultipart()
+            msg['From'] = 'Sandro Tosi <morph@debian.org>'
+            msg['To'] = 'control@bugs.debian.org'
+            msg['Cc'] = 'Sandro Tosi <morph@debian.org>'
+            msg['Subject'] = f"py2removal blocks updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
+            msg.attach(MIMEText('\n'.join(mail_preamble + blocks_mail_body), 'plain'))
+            s.send_message(msg)
