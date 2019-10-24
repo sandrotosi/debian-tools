@@ -143,7 +143,7 @@ if __name__ == '__main__':
                 # some packages are purely virtual, ie not available on my arch (amd64); skip them
                 if not pkg.version_list:
                     continue
-                for d in ['Depends', 'Recommends', 'Suggests']:
+                for d in ['Depends', 'Recommends']:#, 'Suggests']:
                     deps.extend(pkg.version_list[0].depends_list.get(d, []))
                 # does the package depends on python2 packages?
                 if any([(y.target_pkg.name.startswith(('python', 'libpython'))

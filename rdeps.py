@@ -14,7 +14,7 @@ import xdot
 
 
 # binary packages relationships we're interested in, so ignore Conflicts/Breaks/etc
-RELS = ['Depends', 'Recommends', 'Suggests', ]
+RELS = ['Depends', 'Recommends']#, 'Suggests', ]
 
 apt_pkg.init_config()
 apt_pkg.init_system()
