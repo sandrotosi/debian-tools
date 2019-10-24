@@ -289,7 +289,7 @@ tf.init();
                             btags = ''
                             if 'pending' in bugs_tags[bugno]:
                                 btags += 'P'
-                            if 'pending' in bugs_tags[bugno]:
+                            if 'patch' in bugs_tags[bugno]:
                                 btags += '+'
                             if btags:
                                 text(' ' + btags)
