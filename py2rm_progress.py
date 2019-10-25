@@ -92,7 +92,7 @@ if __name__ == '__main__':
         kdates.append(kdate)
         total = total - d[kdate]  # we remove the amount of bugs closed that day from the total (whole bugs)
         vbugs.append(total)
-    plt_locator = mdates.DayLocator(interval=5)
+    plt_locator = mdates.DayLocator(interval=7)
     plt_formatter = mdates.AutoDateFormatter(plt_locator)
     fig, ax = plt.subplots()
     ax.xaxis.set_major_locator(plt_locator)
