@@ -10,7 +10,7 @@ import popcon
 import regex
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
-from collections import defaultdict
+from collections import defaultdict, Counter
 import multiprocess as mp
 import subprocess
 import smtplib
@@ -101,6 +101,23 @@ if __name__ == '__main__':
     plt.xticks(rotation=18, ha='right')
     plt.grid()
     plt.savefig(os.path.join(args.destdir, 'py2removal_progress.png'))
+
+    # generate an unofficial leaderboard
+    topN = 20
+    doers = Counter([bug.done_by for bug in bugs if bug.done])
+    top_doers = doers.most_common(topN)
+    other_doers = doers.most_common()[topN:]
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9.6, 7.2)
+    plt.title(f"Unofficial top {topN} py2removal leaderboard (as of {datetime.datetime.now(tz=datetime.timezone.utc)})")
+    for name, v in top_doers:
+        plt.bar(regex.sub(' <.*>', '', name), v)
+    # group up the remaining uploaders in a single bar
+    plt.bar(f"Others ({len(other_doers)})", sum(x[1] for x in other_doers))
+    plt.xticks(rotation=25, ha='right')
+    fig.tight_layout()
+    ax.yaxis.grid()
+    plt.savefig(os.path.join(args.destdir, 'leaderboard.png'), )
 
     log('Processing source packages data...')
     latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = rdeps.parse_source_pkgs()
@@ -254,10 +271,13 @@ tf.init();
                 text(")")
             with tag('p'):
                 text(f"Total bugs found: {len(bugs)} (open: {len([x for x in bugs if not x.done])}, closed: {len([x for x in bugs if x.done])}).  ")
-                text("See a graphical representation of the progress ")
+                text("Progress ")
                 with tag('a', target='_blank', href='py2removal_progress.png'):
-                    text('here')
-                text(' (only bugs closed after 2019-07-01).')
+                    text('chart')
+                text(' (only bugs closed after 2019-07-01).  Unofficial ')
+                with tag('a', target='_blank', href='leaderboard.png'):
+                    text('leaderboard')
+                text('.')
             with tag('table', id="py2rm-table", klass="TF"):
                 with tag('thead'):
                     with tag('tr'):
