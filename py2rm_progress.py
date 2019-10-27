@@ -100,6 +100,7 @@ if __name__ == '__main__':
     ax.plot(kdates, vbugs)
     plt.xticks(rotation=18, ha='right')
     plt.grid()
+    fig.tight_layout()
     plt.savefig(os.path.join(args.destdir, 'py2removal_progress.png'))
 
     # generate an unofficial leaderboard
