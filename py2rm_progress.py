@@ -35,6 +35,9 @@ if __name__ == '__main__':
     parser.add_argument('--no-blocks', default=False, action="store_true", help='dont sent blocks updates to control@ (for DEBUG)')
     args = parser.parse_args()
 
+    if not os.path.isdir(args.destdir):
+        os.makedirs(args.destdir)
+
     log('Retrieving WNPP bugs information...')
     if args.bugs:
         wnpp_bugs_ids = args.bugs
@@ -229,8 +232,6 @@ if __name__ == '__main__':
 
     log('Generating HTML page...')
 
-    if not os.path.isdir(args.destdir):
-        os.makedirs(args.destdir)
     # make sure we have a copy of tablefilter, https://www.tablefilter.com; it's not pretty, but it works
     tablefilter_dir = os.path.join(args.destdir, 'TableFilter')
     if not os.path.isdir(tablefilter_dir):
