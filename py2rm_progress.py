@@ -242,6 +242,11 @@ if __name__ == '__main__':
     tablefilter_config = '''
 var tfConfig = {
     base_path: '%s',
+    state: {
+          types: ['local_storage'],
+          filters: true,
+          sort: true,
+    },
     alternate_rows: true,
     rows_counter: {
         text: 'Total entries: '
