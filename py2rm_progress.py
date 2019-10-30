@@ -95,15 +95,20 @@ if __name__ == '__main__':
         kdates.append(kdate)
         total = total - d[kdate]  # we remove the amount of bugs closed that day from the total (whole bugs)
         vbugs.append(total)
+    # how many bugs are tagged 'pending'?
+    pendings = len([bug.bug_num for bug in bugs if 'pending' in bug.tags and not bug.done])
     plt_locator = mdates.DayLocator(interval=7)
     plt_formatter = mdates.AutoDateFormatter(plt_locator)
     fig, ax = plt.subplots()
     ax.xaxis.set_major_locator(plt_locator)
     ax.xaxis.set_major_formatter(plt_formatter)
-    ax.plot(kdates, vbugs)
+    ax.plot(kdates, vbugs, label=f"open bugs ({vbugs[-1]})")
+    # show a vertical line from the last date for the bugs tagged pending
+    ax.plot([kdates[-1], kdates[-1]], [vbugs[-1], vbugs[-1]-pendings], label=f"bugs tagged 'pending' ({pendings})")
     plt.xticks(rotation=18, ha='right')
     plt.grid()
     fig.tight_layout()
+    ax.legend(loc='lower left')
     plt.savefig(os.path.join(args.destdir, 'py2removal_progress.png'))
 
     # generate an unofficial leaderboard
