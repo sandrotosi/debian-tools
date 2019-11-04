@@ -431,4 +431,5 @@ tf.init();
             msg['Cc'] = 'Sandro Tosi <morph@debian.org>'
             msg['Subject'] = f"py2removal blocks updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
             msg.attach(MIMEText('\n'.join(mail_preamble + blocks_mail_body), 'plain'))
+            log(msg)
             s.send_message(msg)
