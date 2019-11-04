@@ -102,9 +102,10 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
     ax.xaxis.set_major_locator(plt_locator)
     ax.xaxis.set_major_formatter(plt_formatter)
-    ax.plot(kdates, vbugs, label=f"open bugs ({vbugs[-1]})")
-    # show a vertical line from the last date for the bugs tagged pending
-    ax.plot([kdates[-1], kdates[-1]], [vbugs[-1], vbugs[-1]-pendings], label=f"bugs tagged 'pending' ({pendings})")
+    if len(vbugs) > 1:
+        ax.plot(kdates, vbugs, label=f"open bugs ({vbugs[-1]})")
+        # show a vertical line from the last date for the bugs tagged pending
+        ax.plot([kdates[-1], kdates[-1]], [vbugs[-1], vbugs[-1]-pendings], label=f"bugs tagged 'pending' ({pendings})")
     plt.xticks(rotation=18, ha='right')
     plt.grid()
     fig.tight_layout()
