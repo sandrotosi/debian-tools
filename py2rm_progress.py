@@ -10,7 +10,7 @@ import popcon
 import regex
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, namedtuple
 import multiprocess as mp
 import subprocess
 import smtplib
@@ -21,6 +21,10 @@ from email.mime.text import MIMEText
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
 # generate an additional level of graphs
 EXTRALEVEL = 2
+
+# namedtuple to hold the data we care for py2removal
+dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popconn', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail'])
+
 
 def log(msg):
     print(f"{datetime.datetime.now()}    {msg}")
@@ -158,7 +162,7 @@ if __name__ == '__main__':
             if (bdep.startswith(('python', 'libpython'))) and not (bdep.endswith(('-doc', '-examples')) or bdep.startswith(('python3', 'libboost-python', 'libpython3'))):
                 brdeps += 1
         if brdeps > 0:
-            data.append((bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None))
+            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None))
             active = True
         bins = sources[bug.source][1].replace('\n', '').split(', ')
         for bin in bins:
@@ -189,7 +193,7 @@ if __name__ == '__main__':
                             py3k_pkgs_avail = True
                         else:
                             py3k_pkgs_avail = False
-                    data.append((bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail))
+                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
                 import traceback; log(traceback.print_exc())
@@ -201,31 +205,31 @@ if __name__ == '__main__':
 
     # get a list of packages for which we have a graph, so we dont generated 404 URLs
     packages = list()
-    for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in data:
-        if graph_1 and len(graph_1.get_edges()):
-            packages.append(pkg)
+    for dta in data:
+        if dta.graph_1 and len(dta.graph_1.get_edges()):
+            packages.append(dta.pkg)
 
     work = []
     # produce text xdot for the graphs, easier to pass to mp (Dot objs are note pickleble)
-    for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in data:
-        if not graph_1 or pkg == 'python':
+    for dta in data:
+        if not dta.graph_1 or dta.pkg == 'python':
             continue
-        edges_1 = graph_1.get_edges()
+        edges_1 = dta.graph_1.get_edges()
         if len(edges_1) > 0 and args.destdir:
             # level 1 image
-            for node_1 in graph_1.get_nodes():
+            for node_1 in dta.graph_1.get_nodes():
                 node_name = node_1.get_name().replace('"', '')
                 # create a link only if linking to a package part of the resultset
                 if node_name in packages:
                     node_1.set_URL(node_name+'_1.svg')
-            work.append((graph_1, os.path.join(args.destdir, f"{pkg}_1.svg")))
+            work.append((dta.graph_1, os.path.join(args.destdir, f"{dta.pkg}_1.svg")))
             # level EXTRA image
-            for node_N in graph_N.get_nodes():
+            for node_N in dta.graph_N.get_nodes():
                 node_name = node_N.get_name().replace('"', '')
                 # create a link only if linking to a package part of the resultset
                 if node_name in packages:
                     node_N.set_URL(node_name+f'_{EXTRALEVEL}.svg')
-            work.append((graph_N, os.path.join(args.destdir, f"{pkg}_{EXTRALEVEL}.svg")))
+            work.append((dta.graph_N, os.path.join(args.destdir, f"{dta.pkg}_{EXTRALEVEL}.svg")))
 
     def write_svg_graph(graph, outfile):
         graph.set_rankdir('RL')
@@ -314,67 +318,67 @@ tf.init();
                             with tag('b'): text('Rdeps graph (level 1)')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
-                for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in sorted(data, key=lambda x: (x[2], x[6])):
+                for dta in sorted(data, key=lambda x: (x.edges_1, x.fdeps)):
                     with tag('tr'):
                         with tag('td'):
-                            with tag('a', target='_blank', href=f"https://bugs.debian.org/{bugno}"):
-                                text(bugno)
+                            with tag('a', target='_blank', href=f"https://bugs.debian.org/{dta.bugno}"):
+                                text(dta.bugno)
                             btags = ''
-                            if 'pending' in bugs_tags[bugno]:
+                            if 'pending' in bugs_tags[dta.bugno]:
                                 btags += 'P'
-                            if 'patch' in bugs_tags[bugno]:
+                            if 'patch' in bugs_tags[dta.bugno]:
                                 btags += '+'
                             if btags:
                                 text(' ' + btags)
                         with tag('td'):
-                            if pkg.startswith('src:'):
-                                with tag('a', target='_blank', href=f"https://packages.debian.org/source/sid/{pkg.split(':')[1]}"):
-                                    text(pkg)
+                            if dta.pkg.startswith('src:'):
+                                with tag('a', target='_blank', href=f"https://packages.debian.org/source/sid/{dta.pkg.split(':')[1]}"):
+                                    text(dta.pkg)
                             else:
-                                with tag('a', target='_blank', href=f"https://packages.debian.org/unstable/{pkg}"):
-                                    text(pkg)
+                                with tag('a', target='_blank', href=f"https://packages.debian.org/unstable/{dta.pkg}"):
+                                    text(dta.pkg)
                         with tag('td'):
-                            if py3k_pkgs_avail is None:
+                            if dta.py3k_pkgs_avail is None:
                                 text('')
-                            elif py3k_pkgs_avail:
+                            elif dta.py3k_pkgs_avail:
                                 text('yes')
                             else:
                                 text('no')
                         with tag('td'):
-                            if popconn:
-                                text(popconn)
+                            if dta.popconn:
+                                text(dta.popconn)
                             else:
                                 text('')
                         with tag('td'):
-                            if wnppp:
-                                wnpptag, wnppbug = wnppp
+                            if dta.wnppp:
+                                wnpptag, wnppbug = dta.wnppp
                                 with tag('a', target='_blank', href=f"https://bugs.debian.org/{wnppbug}"):
                                     text(wnpptag)
                             else:
                                 text('')
                         with tag('td'):
                             with tag('b'):
-                                text('M: ' + maint)
-                            if uplds:
+                                text('M: ' + dta.maint)
+                            if dta.uplds:
                                 with tag('i'):
-                                    text(' - U: ' + uplds)
-                        with tag('td'): text(fdeps)
-                        with tag('td'): text(edges_1)
+                                    text(' - U: ' + dta.uplds)
+                        with tag('td'): text(dta.fdeps)
+                        with tag('td'): text(dta.edges_1)
                         with tag('td'):
-                            if pkg.startswith('src:'):
+                            if dta.pkg.startswith('src:'):
                                 text('no graph for src pkgs (yet)')
                             else:
-                                if edges_1 > 0:
-                                    with tag('a', target='_blank', href=f"{pkg}_1.svg"):
+                                if dta.edges_1 > 0:
+                                    with tag('a', target='_blank', href=f"{dta.pkg}_1.svg"):
                                         text('graph')
                                 else:
                                     text('no rdeps')
                         with tag('td'):
-                            if pkg.startswith('src:'):
+                            if dta.pkg.startswith('src:'):
                                 text('no graph for src pkgs (yet)')
                             else:
-                                if edges_N > 0:
-                                    with tag('a', target='_blank', href=f"{pkg}_{EXTRALEVEL}.svg"):
+                                if dta.edges_N > 0:
+                                    with tag('a', target='_blank', href=f"{dta.pkg}_{EXTRALEVEL}.svg"):
                                         text('graph')
                                 else:
                                     text('no rdeps')
@@ -388,14 +392,14 @@ tf.init();
     if not args.no_blocks:
         log('Generating control@ email to update block information...')
         all_bugs_blocks = defaultdict(set)
-        for bugno, pkg, edges_1, graph_1, maint, uplds, fdeps, popconn, wnppp, edges_N, graph_N, py3k_pkgs_avail in data:
-            if pkg.startswith('src:'):
-                current_blocks = set(bugs_blockedby.get(bugs_by_source[pkg.replace('src:', '')], []))
+        for dta in data:
+            if dta.pkg.startswith('src:'):
+                current_blocks = set(bugs_blockedby.get(bugs_by_source[dta.pkg.replace('src:', '')], []))
             else:
-                current_blocks = set(bugs_blockedby.get(bugs_by_source[bin_to_src[pkg]], []))
+                current_blocks = set(bugs_blockedby.get(bugs_by_source[bin_to_src[dta.pkg]], []))
             all_blocks = set()
-            if edges_1 > 0:
-                for edge in graph_1.get_edges():
+            if dta.edges_1 > 0:
+                for edge in dta.graph_1.get_edges():
                     edgesrc = edge.get_source().replace('"', '')
                     if edge.get_label().lower().startswith(('build', 'testsuite')):
                         src = edgesrc
@@ -407,8 +411,8 @@ tf.init();
                         current_bug = bugs_by_source[src]
                         if current_bug not in bugs_done:
                             all_blocks.add(current_bug)
-            new_blocks = all_blocks - current_blocks - set([bugno,])
-            all_bugs_blocks[bugno] = all_bugs_blocks[bugno].union(new_blocks)
+            new_blocks = all_blocks - current_blocks - set([dta.bugno,])
+            all_bugs_blocks[dta.bugno] = all_bugs_blocks[dta.bugno].union(new_blocks)
 
         blocks_mail_body = []
         for bug, blocks in all_bugs_blocks.items():
