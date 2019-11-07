@@ -23,7 +23,7 @@ WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
 EXTRALEVEL = 2
 
 # namedtuple to hold the data we care for py2removal
-dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popconn', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail'])
+dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popconn', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps'])
 
 
 def log(msg):
@@ -162,7 +162,7 @@ if __name__ == '__main__':
             if (bdep.startswith(('python', 'libpython'))) and not (bdep.endswith(('-doc', '-examples')) or bdep.startswith(('python3', 'libboost-python', 'libpython3'))):
                 brdeps += 1
         if brdeps > 0:
-            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None))
+            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0))
             active = True
         bins = sources[bug.source][1].replace('\n', '').split(', ')
         for bin in bins:
@@ -193,7 +193,9 @@ if __name__ == '__main__':
                             py3k_pkgs_avail = True
                         else:
                             py3k_pkgs_avail = False
-                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail))
+                    # deps from packages outside of the same source
+                    real_rdeps = len(set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins))
+                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
                 import traceback; log(traceback.print_exc())
@@ -315,10 +317,13 @@ tf.init();
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('# rdeps')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('span', title='Reverse dependencies from packages not in the same source pkgs'):
+                                with tag('b'): text('# real rdeps')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Rdeps graph (level 1)')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
-                for dta in sorted(data, key=lambda x: (x.edges_1, x.fdeps)):
+                for dta in sorted(data, key=lambda x: (x.real_rdeps, x.fdeps)):
                     with tag('tr'):
                         with tag('td'):
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{dta.bugno}"):
@@ -364,6 +369,7 @@ tf.init();
                                     text(' - U: ' + dta.uplds)
                         with tag('td'): text(dta.fdeps)
                         with tag('td'): text(dta.edges_1)
+                        with tag('td'): text(dta.real_rdeps)
                         with tag('td'):
                             if dta.pkg.startswith('src:'):
                                 text('no graph for src pkgs (yet)')
