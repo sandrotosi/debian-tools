@@ -266,6 +266,19 @@ var tfConfig = {
     btn_reset: {
         text: 'Clear'
     },
+    col_types: [
+        'number',
+        'string',
+        'string',
+        'number',
+        'string',
+        'string',
+        'number',
+        'number',
+        'number',
+        'string',
+        'string'
+    ],
     loader: true,
     no_results_message: true,
     sticky_headers: true,
