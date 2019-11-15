@@ -62,27 +62,33 @@ if __name__ == '__main__':
         else:
             log(f"Badly formatted WNPP bug: retitle {wnpp_bug.bug_num} \"{wnpp_bug.subject}\"")
 
-    log('Getting bugs tagged `py2removal`...')
+    log('Getting bugs tagged `py2removal`/`py2keep`...')
     if args.bugs:
         bugs_by_tag = args.bugs
     else:
         bugs_by_tag = debianbts.get_usertag('debian-python@lists.debian.org', 'py2removal')['py2removal']
+        py2keep_bugs_by_tag = debianbts.get_usertag('debian-python@lists.debian.org', 'py2keep')['py2keep']
     if args.limit:
         bugs_by_tag = bugs_by_tag[:args.limit]
+        py2keep_bugs_by_tag = py2keep_bugs_by_tag[:args.limit]
 
-    log(f"Found {len(bugs_by_tag)} bugs, getting status...")
+    log(f"Found {len(bugs_by_tag)} `py2removal` bugs, getting status...")
     bugs = debianbts.get_status(bugs_by_tag)
+    log(f"Found {len(py2keep_bugs_by_tag)} `py2keep` bugs, getting status...")
+    py2keep_bugs = debianbts.get_status(py2keep_bugs_by_tag)
 
     # get the tags, so we can show them on the table
     bugs_tags = {}
     bugs_blockedby = {}
     bugs_by_source = {}
     sources_by_bug = {}
+    bugs_by_bugno = {}
     bugs_done = set()
     for bug in bugs:
         bugs_tags[bug.bug_num] = bug.tags
         bugs_blockedby[bug.bug_num] = bug.blockedby
         bugs_by_source[bug.source] = bug.bug_num
+        bugs_by_bugno[bug.bug_num] = bug
         sources_by_bug[bug.bug_num] = bug.source
         if bug.done:
             bugs_done.add(bug.bug_num)
@@ -456,3 +462,22 @@ tf.init();
             msg.attach(MIMEText('\n'.join(mail_preamble + blocks_mail_body), 'plain'))
             log(msg)
             s.send_message(msg)
+
+    log('Generating control@ email to raise severity to RC...')
+    rc_severity_body = []
+    for dta in data:
+        try:
+            # skip this part if the bug is marked as `py2keep` or the severity is already `serious`
+            if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious':
+                if dta.pkg.startswith('python-') and dta.real_rdeps == 0:
+                    rc_severity_body.append(f'# {dta.pkg} is a module and have 0 external rdeps')
+                    rc_severity_body.append(f'severity {dta.bugno} serious')
+                elif not dta.pkg.startswith(('python-', 'src:')) and dta.popconn and dta.popconn < 300:
+                    rc_severity_body.append(f'# {dta.pkg} is an application and low popcon ({dta.popconn} < 300)')
+                    rc_severity_body.append(f'severity {dta.bugno} serious')
+        except:
+            print(dta)
+    with open('%s/would_raise_to_rc.txt' % args.destdir, 'w') as f:
+        f.write('\n'.join(rc_severity_body))
+
+    log('Script completed')
