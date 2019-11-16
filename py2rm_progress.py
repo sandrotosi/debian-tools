@@ -65,6 +65,7 @@ if __name__ == '__main__':
     log('Getting bugs tagged `py2removal`/`py2keep`...')
     if args.bugs:
         bugs_by_tag = args.bugs
+        py2keep_bugs_by_tag = []
     else:
         bugs_by_tag = debianbts.get_usertag('debian-python@lists.debian.org', 'py2removal')['py2removal']
         py2keep_bugs_by_tag = debianbts.get_usertag('debian-python@lists.debian.org', 'py2keep')['py2keep']
@@ -468,12 +469,12 @@ tf.init();
     for dta in data:
         try:
             # skip this part if the bug is marked as `py2keep` or the severity is already `serious`
-            if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious':
+            if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious' and not dta.pkg.endswith('-doc') :
                 if dta.pkg.startswith('python-') and dta.real_rdeps == 0:
-                    rc_severity_body.append(f'# {dta.pkg} is a module and have 0 external rdeps')
+                    rc_severity_body.append(f'# {dta.pkg} is a module and has 0 external rdeps')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
                 elif not dta.pkg.startswith(('python-', 'src:')) and dta.popconn and dta.popconn < 300:
-                    rc_severity_body.append(f'# {dta.pkg} is an application and low popcon ({dta.popconn} < 300)')
+                    rc_severity_body.append(f'# {dta.pkg} is an application and has low popcon ({dta.popconn} < 300)')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
         except:
             print(dta)
