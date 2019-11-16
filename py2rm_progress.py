@@ -23,7 +23,7 @@ WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
 EXTRALEVEL = 2
 
 # namedtuple to hold the data we care for py2removal
-dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popconn', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps'])
+dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popcon', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps'])
 
 
 def log(msg):
@@ -370,8 +370,8 @@ tf.init();
                             else:
                                 text('no')
                         with tag('td'):
-                            if dta.popconn:
-                                text(dta.popconn)
+                            if dta.popcon:
+                                text(dta.popcon)
                             else:
                                 text('')
                         with tag('td'):
@@ -473,8 +473,8 @@ tf.init();
                 if dta.pkg.startswith('python-') and dta.real_rdeps == 0:
                     rc_severity_body.append(f'# {dta.pkg} is a module and has 0 external rdeps')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
-                elif not dta.pkg.startswith(('python-', 'src:')) and dta.popconn and dta.popconn < 300:
-                    rc_severity_body.append(f'# {dta.pkg} is an application and has low popcon ({dta.popconn} < 300)')
+                elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon and dta.popcon < 300:
+                    rc_severity_body.append(f'# {dta.pkg} is an application and has low popcon ({dta.popcon} < 300)')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
         except:
             print(dta)
