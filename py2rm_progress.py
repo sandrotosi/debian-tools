@@ -16,6 +16,8 @@ import subprocess
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import lxml.html
+import requests
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
@@ -249,6 +251,34 @@ if __name__ == '__main__':
     with mp.Pool(mp.cpu_count()-2) as p:
         p.starmap(write_svg_graph, work)
 
+    log('Gathering PyPI data...')
+    pypi = {}
+    # list of modules on PyPI
+    pypi_pkgs_page = requests.get("https://pypi.org/simple/")
+    tree = lxml.html.fromstring(pypi_pkgs_page.content)
+    pypi_pkgs = set([package.lower() for package in tree.xpath('//a/text()')])
+    log(f'Found {len(pypi_pkgs)} PyPI packages, checking...')
+    for dta in data:
+        # trying to figure out a matching name debian <-> PyPI...
+        pkg2find = None
+        if dta.pkg in pypi_pkgs:
+            pkg2find = dta.pkg
+        elif dta.pkg.startswith('python-') and dta.pkg.replace('python-', '') in pypi_pkgs:
+            pkg2find = dta.pkg.replace('python-', '')
+        elif dta.pkg.startswith('src:') and dta.pkg.replace('src:', '') in pypi_pkgs:
+            pkg2find = dta.pkg.replace('src:', '')
+        elif 'py' + dta.pkg in pypi_pkgs:
+            pkg2find = 'py' + dta.pkg
+        if pkg2find:
+            try:
+                pkginfo = requests.get(f'https://pypi.org/pypi/{pkg2find}/json').json()['info']
+                available_versions = [classif.split(" :: ")[-1] for classif in pkginfo['classifiers'] if classif.startswith('Programming Language :: Python')]
+                if available_versions:
+                    pypi[dta.pkg] = {'version': pkginfo['version'], 'available_versions': available_versions}
+            except:
+                pass  # ignore errors here
+
+
     log('Generating HTML page...')
 
     # make sure we have a copy of tablefilter, https://www.tablefilter.com; it's not pretty, but it works
@@ -275,6 +305,7 @@ var tfConfig = {
     },
     col_types: [
         'number',
+        'string',
         'string',
         'string',
         'number',
@@ -327,6 +358,9 @@ tf.init();
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('py3k?')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('span', title='Latest version and PyPI classifiers Python versions'):
+                                with tag('b'): text('PyPI Data')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Popcon')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('WNPP')
@@ -369,6 +403,11 @@ tf.init();
                                 text('yes')
                             else:
                                 text('no')
+                        with tag('td'):
+                            if dta.pkg in pypi:
+                                text(f'{pypi[dta.pkg]["version"]}: {", ".join(pypi[dta.pkg]["available_versions"])}')
+                            else:
+                                text('')
                         with tag('td'):
                             if dta.popcon:
                                 text(dta.popcon)
