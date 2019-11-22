@@ -21,6 +21,8 @@ import requests
 
 # support both "TAG: pkg -- description" and "TAG: pkg"
 WNPPRE = regex.compile(r'(?P<tag>[^:]+): (?P<src>[^ ]+)(?:$| -- .*)')
+# RM: pkg -- reasons"
+FTPDORE = regex.compile(r'RM: (?P<src>[^ ]+)(?:$| -- .*)')
 # generate an additional level of graphs
 EXTRALEVEL = 2
 
@@ -63,6 +65,27 @@ if __name__ == '__main__':
             wnpp[src] = (tag, wnpp_bug.bug_num)
         else:
             log(f"Badly formatted WNPP bug: retitle {wnpp_bug.bug_num} \"{wnpp_bug.subject}\"")
+
+    log('Retrieving ftp.debian.org bugs information...')
+    if args.bugs:
+        ftpdo_bugs_ids = args.bugs
+    else:
+        ftpdo_bugs_ids = debianbts.get_bugs('package', 'ftp.debian.org')
+    if args.limit:
+        ftpdo_bugs_ids = ftpdo_bugs_ids[:args.limit]
+    log(f"Found {len(ftpdo_bugs_ids)} ftp.debian.org bugs, getting status...")
+    ftpdo_bugs = debianbts.get_status(ftpdo_bugs_ids)
+    ftpdo = {}
+    for ftpdo_bug in ftpdo_bugs:
+        if ftpdo_bug.done:
+            continue
+        if ftpdo_bug.subject.startswith('RM'):
+            m = FTPDORE.match(ftpdo_bug.subject)
+            if m:
+                src = m.group(1)
+                ftpdo[src] = ftpdo_bug.bug_num
+            else:
+                log(f"Badly formatted ftp.debian.org bug: retitle {ftpdo_bug.bug_num} \"{ftpdo_bug.subject}\"")
 
     log('Getting bugs tagged `py2removal`/`py2keep`...')
     if args.bugs:
@@ -418,6 +441,9 @@ tf.init();
                                 wnpptag, wnppbug = dta.wnppp
                                 with tag('a', target='_blank', href=f"https://bugs.debian.org/{wnppbug}"):
                                     text(wnpptag)
+                            elif dta.pkg.replace('src:', '') in ftpdo:
+                                with tag('a', target='_blank', href=f"https://bugs.debian.org/{ftpdo[dta.pkg.replace('src:', '')]}"):
+                                    text('RM')
                             else:
                                 text('')
                         with tag('td'):
