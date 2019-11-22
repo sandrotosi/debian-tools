@@ -386,7 +386,7 @@ tf.init();
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Popcon')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('b'): text('WNPP')
+                            with tag('b'): text('WNPP/ftp.d.o')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Maintainer/Uploaders')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
