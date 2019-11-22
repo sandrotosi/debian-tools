@@ -533,6 +533,8 @@ tf.init();
     rc_severity_body = []
     for dta in data:
         try:
+            if bugs_by_bugno[dta.bugno].blockedby:
+                continue
             # skip this part if the bug is marked as `py2keep` or the severity is already `serious`
             if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious' and not dta.pkg.endswith('-doc') :
                 if dta.pkg.startswith('python-') and dta.real_rdeps == 0:
