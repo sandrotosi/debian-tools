@@ -488,10 +488,10 @@ tf.init();
         log('Generating control@ email to update block information...')
         all_bugs_blocks = defaultdict(set)
         for dta in data:
-            if dta.pkg.startswith('src:'):
-                current_blocks = set(bugs_blockedby.get(bugs_by_source[dta.pkg.replace('src:', '')], []))
-            else:
-                current_blocks = set(bugs_blockedby.get(bugs_by_source[bin_to_src[dta.pkg]], []))
+            current_blocks = set()
+            if dta.bugno in all_bugs_blocks:
+                current_blocks = all_bugs_blocks[dta.bugno]
+            current_blocks = current_blocks.union(set(bugs_blockedby.get(dta.bugno, [])))
             all_blocks = set()
             if dta.edges_1 > 0:
                 for edge in dta.graph_1.get_edges():
