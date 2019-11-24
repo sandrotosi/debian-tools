@@ -41,6 +41,8 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--limit', default=None, type=int, help='limit the lists of bugs (py2removal and WNPP) retrieved (for DEBUG)')
     parser.add_argument('-b', '--bugs', default=None, nargs='+', type=int, help='only work on the specified bugs, useful for debug')
     parser.add_argument('--no-blocks', default=False, action="store_true", help='dont sent blocks updates to control@ (for DEBUG)')
+    parser.add_argument('--no-images', default=False, action="store_true", help='dont generate images (for DEBUG)')
+    parser.add_argument('--no-pypi', default=False, action="store_true", help='dont look for modules on PyPI (for DEBUG)')
     args = parser.parse_args()
 
     if not os.path.isdir(args.destdir):
@@ -235,71 +237,73 @@ if __name__ == '__main__':
         if not active:
             log(f"{bug.bug_num} has no py2 dependencies?")
 
-    log('Pre-processing graph for image generation...')
+    if not args.no_images:
+        log('Pre-processing graph for image generation...')
 
-    # get a list of packages for which we have a graph, so we dont generated 404 URLs
-    packages = list()
-    for dta in data:
-        if dta.graph_1 and len(dta.graph_1.get_edges()):
-            packages.append(dta.pkg)
+        # get a list of packages for which we have a graph, so we dont generated 404 URLs
+        packages = list()
+        for dta in data:
+            if dta.graph_1 and len(dta.graph_1.get_edges()):
+                packages.append(dta.pkg)
 
-    work = []
-    # produce text xdot for the graphs, easier to pass to mp (Dot objs are note pickleble)
-    for dta in data:
-        if not dta.graph_1 or dta.pkg == 'python':
-            continue
-        edges_1 = dta.graph_1.get_edges()
-        if len(edges_1) > 0 and args.destdir:
-            # level 1 image
-            for node_1 in dta.graph_1.get_nodes():
-                node_name = node_1.get_name().replace('"', '')
-                # create a link only if linking to a package part of the resultset
-                if node_name in packages:
-                    node_1.set_URL(node_name+'_1.svg')
-            work.append((dta.graph_1, os.path.join(args.destdir, f"{dta.pkg}_1.svg")))
-            # level EXTRA image
-            for node_N in dta.graph_N.get_nodes():
-                node_name = node_N.get_name().replace('"', '')
-                # create a link only if linking to a package part of the resultset
-                if node_name in packages:
-                    node_N.set_URL(node_name+f'_{EXTRALEVEL}.svg')
-            work.append((dta.graph_N, os.path.join(args.destdir, f"{dta.pkg}_{EXTRALEVEL}.svg")))
+        work = []
+        # produce text xdot for the graphs, easier to pass to mp (Dot objs are note pickleble)
+        for dta in data:
+            if not dta.graph_1 or dta.pkg == 'python':
+                continue
+            edges_1 = dta.graph_1.get_edges()
+            if len(edges_1) > 0 and args.destdir:
+                # level 1 image
+                for node_1 in dta.graph_1.get_nodes():
+                    node_name = node_1.get_name().replace('"', '')
+                    # create a link only if linking to a package part of the resultset
+                    if node_name in packages:
+                        node_1.set_URL(node_name+'_1.svg')
+                work.append((dta.graph_1, os.path.join(args.destdir, f"{dta.pkg}_1.svg")))
+                # level EXTRA image
+                for node_N in dta.graph_N.get_nodes():
+                    node_name = node_N.get_name().replace('"', '')
+                    # create a link only if linking to a package part of the resultset
+                    if node_name in packages:
+                        node_N.set_URL(node_name+f'_{EXTRALEVEL}.svg')
+                work.append((dta.graph_N, os.path.join(args.destdir, f"{dta.pkg}_{EXTRALEVEL}.svg")))
 
-    def write_svg_graph(graph, outfile):
-        graph.set_rankdir('RL')
-        with open(outfile, 'wb') as f:
-            f.write(graph.create(format='svg'))
+        def write_svg_graph(graph, outfile):
+            graph.set_rankdir('RL')
+            with open(outfile, 'wb') as f:
+                f.write(graph.create(format='svg'))
 
-    log('Generating images...')
-    with mp.Pool(mp.cpu_count()-2) as p:
-        p.starmap(write_svg_graph, work)
+        log('Generating images...')
+        with mp.Pool(mp.cpu_count()-2) as p:
+            p.starmap(write_svg_graph, work)
 
-    log('Gathering PyPI data...')
     pypi = {}
-    # list of modules on PyPI
-    pypi_pkgs_page = requests.get("https://pypi.org/simple/")
-    tree = lxml.html.fromstring(pypi_pkgs_page.content)
-    pypi_pkgs = set([package.lower() for package in tree.xpath('//a/text()')])
-    log(f'Found {len(pypi_pkgs)} PyPI packages, checking...')
-    for dta in data:
-        # trying to figure out a matching name debian <-> PyPI...
-        pkg2find = None
-        if dta.pkg in pypi_pkgs:
-            pkg2find = dta.pkg
-        elif dta.pkg.startswith('python-') and dta.pkg.replace('python-', '') in pypi_pkgs:
-            pkg2find = dta.pkg.replace('python-', '')
-        elif dta.pkg.startswith('src:') and dta.pkg.replace('src:', '') in pypi_pkgs:
-            pkg2find = dta.pkg.replace('src:', '')
-        elif 'py' + dta.pkg in pypi_pkgs:
-            pkg2find = 'py' + dta.pkg
-        if pkg2find:
-            try:
-                pkginfo = requests.get(f'https://pypi.org/pypi/{pkg2find}/json').json()['info']
-                available_versions = [classif.split(" :: ")[-1] for classif in pkginfo['classifiers'] if classif.startswith('Programming Language :: Python')]
-                if available_versions:
-                    pypi[dta.pkg] = {'version': pkginfo['version'], 'available_versions': available_versions}
-            except:
-                pass  # ignore errors here
+    if not args.no_pypi:
+        log('Gathering PyPI data...')
+        # list of modules on PyPI
+        pypi_pkgs_page = requests.get("https://pypi.org/simple/")
+        tree = lxml.html.fromstring(pypi_pkgs_page.content)
+        pypi_pkgs = set([package.lower() for package in tree.xpath('//a/text()')])
+        log(f'Found {len(pypi_pkgs)} PyPI packages, checking...')
+        for dta in data:
+            # trying to figure out a matching name debian <-> PyPI...
+            pkg2find = None
+            if dta.pkg in pypi_pkgs:
+                pkg2find = dta.pkg
+            elif dta.pkg.startswith('python-') and dta.pkg.replace('python-', '') in pypi_pkgs:
+                pkg2find = dta.pkg.replace('python-', '')
+            elif dta.pkg.startswith('src:') and dta.pkg.replace('src:', '') in pypi_pkgs:
+                pkg2find = dta.pkg.replace('src:', '')
+            elif 'py' + dta.pkg in pypi_pkgs:
+                pkg2find = 'py' + dta.pkg
+            if pkg2find:
+                try:
+                    pkginfo = requests.get(f'https://pypi.org/pypi/{pkg2find}/json').json()['info']
+                    available_versions = [classif.split(" :: ")[-1] for classif in pkginfo['classifiers'] if classif.startswith('Programming Language :: Python')]
+                    if available_versions:
+                        pypi[dta.pkg] = {'version': pkginfo['version'], 'available_versions': available_versions}
+                except:
+                    pass  # ignore errors here
 
 
     log('Generating HTML page...')
