@@ -501,7 +501,7 @@ tf.init();
                     else:
                         src = bin_to_src[edgesrc]
                     if src not in bugs_by_source.keys():
-                        log(f"ERROR: {src} found but no bug is open for that source")
+                        pass #  FIXME: log(f"ERROR: {src} found but no bug is open for that source")
                     else:
                         current_bug = bugs_by_source[src]
                         if current_bug not in bugs_done:
