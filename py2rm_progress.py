@@ -407,6 +407,8 @@ tf.init();
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{dta.bugno}"):
                                 text(dta.bugno)
                             btags = ''
+                            if bugs_by_bugno[dta.bugno].severity in ('serious', 'grave'):
+                                btags += 'RC'
                             if 'pending' in bugs_tags[dta.bugno]:
                                 btags += 'P'
                             if 'patch' in bugs_tags[dta.bugno]:
