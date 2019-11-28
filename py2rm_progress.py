@@ -376,7 +376,8 @@ tf.init();
                 with tag('thead'):
                     with tag('tr'):
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('b'): text('Bug No.')
+                            with tag('span', title='RC=RC level, P=Pending, +=patch'):
+                                with tag('b'): text('Bug No.')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Binary pkg')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
@@ -406,15 +407,15 @@ tf.init();
                         with tag('td'):
                             with tag('a', target='_blank', href=f"https://bugs.debian.org/{dta.bugno}"):
                                 text(dta.bugno)
-                            btags = ''
+                            btags = []
                             if bugs_by_bugno[dta.bugno].severity in ('serious', 'grave'):
-                                btags += 'RC'
+                                btags.append('RC')
                             if 'pending' in bugs_tags[dta.bugno]:
-                                btags += 'P'
+                                btags.append('P')
                             if 'patch' in bugs_tags[dta.bugno]:
-                                btags += '+'
+                                btags.append('+')
                             if btags:
-                                text(' ' + btags)
+                                text(' ' + ','.join(btags))
                         with tag('td'):
                             if dta.pkg.startswith('src:'):
                                 with tag('a', target='_blank', href=f"https://packages.debian.org/source/sid/{dta.pkg.split(':')[1]}"):
