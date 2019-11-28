@@ -534,7 +534,7 @@ tf.init();
     rc_severity_body = []
     for dta in data:
         try:
-            if bugs_by_bugno[dta.bugno].blockedby:
+            if bugs_by_bugno[dta.bugno].blockedby or dta.bugno in py2keep_bugs_by_tag:
                 continue
             # skip this part if the bug is marked as `py2keep` or the severity is already `serious`
             if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious' and not dta.pkg.endswith('-doc') :
@@ -544,7 +544,8 @@ tf.init();
                 elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon and dta.popcon < 300:
                     rc_severity_body.append(f'# {dta.pkg} is an application and has low popcon ({dta.popcon} < 300)')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
-        except:
+        except Exception as e:
+            print(e)
             print(dta)
     with open('%s/would_raise_to_rc.txt' % args.destdir, 'w') as f:
         f.write('\n'.join(rc_severity_body))
