@@ -550,7 +550,22 @@ tf.init();
         except Exception as e:
             print(e)
             print(dta)
-    with open('%s/would_raise_to_rc.txt' % args.destdir, 'w') as f:
-        f.write('\n'.join(rc_severity_body))
+    if rc_severity_body:
+        mail_preamble = ['# Part of the effort for the removal of python from bullseye',
+                         '#  * https://wiki.debian.org/Python/2Removal',
+                         '#  * http://sandrotosi.me/debian/py2removal/index.html',
+                         '# See https://lists.debian.org/debian-devel-announce/2019/11/msg00000.html',
+                         '# for more details on this severity bump',
+                         '',
+                         ]
+        s = smtplib.SMTP(host='localhost', port=25)
+        msg = MIMEMultipart()
+        msg['From'] = 'Sandro Tosi <morph@debian.org>'
+        msg['To'] = 'control@bugs.debian.org'
+        msg['Cc'] = 'Sandro Tosi <morph@debian.org>'
+        msg['Subject'] = f"py2removal RC severity updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
+        msg.attach(MIMEText('\n'.join(mail_preamble + rc_severity_body), 'plain'))
+        log(msg)
+        #s.send_message(msg)
 
     log('Script completed')
