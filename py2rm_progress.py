@@ -541,12 +541,12 @@ tf.init();
             if bugs_by_bugno[dta.bugno].blockedby or dta.bugno in py2keep_bugs_by_tag:
                 continue
             # skip this part if the bug is marked as `py2keep` or the severity is already `serious`
-            if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious' and not dta.pkg.endswith('-doc') :
-                if dta.pkg.startswith('python-') and dta.real_rdeps == 0:
-                    rc_severity_body.append(f'# {dta.pkg} is a module and has 0 external rdeps')
+            if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious' and not dta.pkg.endswith('-doc') and dta.real_rdeps == 0:
+                if dta.pkg.startswith('python-'):
+                    rc_severity_body.append(f'# {dta.pkg} is a module and has 0 external rdeps or not in testing')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
                 elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon and dta.popcon < 300:
-                    rc_severity_body.append(f'# {dta.pkg} is an application and has low popcon ({dta.popcon} < 300)')
+                    rc_severity_body.append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} < 300), and has 0 external rdeps or not in testing')
                     rc_severity_body.append(f'severity {dta.bugno} serious')
         except Exception as e:
             print(e)
@@ -567,6 +567,6 @@ tf.init();
         msg['Subject'] = f"py2removal RC severity updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
         msg.attach(MIMEText('\n'.join(mail_preamble + rc_severity_body), 'plain'))
         log(msg)
-        #s.send_message(msg)
+        s.send_message(msg)
 
     log('Script completed')
