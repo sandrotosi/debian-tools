@@ -20,9 +20,9 @@ apt_pkg.init_system()
 cache = apt_pkg.Cache(None)
 
 
-def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, maxlevel):
+def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, maxlevel, testing_sources=None, testing_binaries=None):
     visited = set()
-    graph = pydot.Dot(graph_type='digraph', simplify=False)
+    graph = pydot.Dot(graph_type='digraph', simplify=False, rankdir='RL')
     todo = list()
     # list, "heap", of (package-name, level) so we can skip the highest levels down the recursion
     todo.append((pkg_name, 1))
@@ -45,20 +45,35 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
             if rdep.parent_pkg.name not in latestbinpkgs:
                 continue
             if rdep.dep_type in RELS:
-                graph.add_node(pydot.Node(rdep.parent_pkg.name))
+                color = 'red'
+                if testing_binaries and rdep.parent_pkg.name not in testing_binaries:
+                    color = 'green'
+                graph.add_node(pydot.Node(rdep.parent_pkg.name, color=color))
                 graph.add_edge(pydot.Edge(rdep.parent_pkg.name, name, label=rdep.dep_type+f" (lvl={level})"))
                 todo.append((rdep.parent_pkg.name, level+1))
         for rbdep in rbdeps[name]:
-            graph.add_node(pydot.Node(rbdep))
+            color = 'red'
+            if testing_sources and rbdep not in testing_sources:
+                color = 'green'
+            graph.add_node(pydot.Node(rbdep, color=color))
             graph.add_edge(pydot.Edge(rbdep, name, label=f"Build-Depends (lvl={level})"))
         for rbdepi in rbdepsi[name]:
-            graph.add_node(pydot.Node(rbdepi))
+            color = 'red'
+            if testing_sources and rbdepi not in testing_sources:
+                color = 'green'
+            graph.add_node(pydot.Node(rbdepi, color=color))
             graph.add_edge(pydot.Edge(rbdepi, name, label=f"Build-Depends-Indep (lvl={level})"))
         for rbdepa in rbdepsa[name]:
-            graph.add_node(pydot.Node(rbdepa))
+            color = 'red'
+            if testing_sources and rbdepa not in testing_sources:
+                color = 'green'
+            graph.add_node(pydot.Node(rbdepa, color=color))
             graph.add_edge(pydot.Edge(rbdepa, name, label=f"Build-Depends-Arch (lvl={level})"))
         for rtstrigg in rtstrig[name]:
-            graph.add_node(pydot.Node(rtstrigg))
+            color = 'red'
+            if testing_sources and rtstrigg not in testing_sources:
+                color = 'green'
+            graph.add_node(pydot.Node(rtstrigg, color=color))
             graph.add_edge(pydot.Edge(rtstrigg, name, label=f"Testsuite-Triggers (lvl={level})"))
 
     return graph
@@ -77,12 +92,12 @@ if __name__ == '__main__':
         print('Parsing Sources Index...')
 
     latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = parse_source_pkgs()
+    testing_latestbinpkgs, _, _, _, _, testing_sources = parse_source_pkgs(distro='testing')
 
     if not args.text:
         print(f"Processing reverse dependencies (with max {args.level} depth level)...")
 
-
-    graph = generate_rdeps_graph(args.pkgs[0], latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, args.level)
+    graph = generate_rdeps_graph(args.pkgs[0], latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, args.level, testing_sources=testing_sources, testing_binaries=testing_latestbinpkgs)
 
     #with open('image.png', 'wb') as f:
     #    f.write(graph.create(format='png'))
