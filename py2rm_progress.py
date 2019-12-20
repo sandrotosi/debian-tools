@@ -525,7 +525,11 @@ tf.init();
 
         # send the mail to control@, only if we have something to send
         if blocks_mail_body:
-            mail_preamble = ['# Part of the effort for the removal of python from bullseye', '#  * https://wiki.debian.org/Python/2Removal', '#  * http://sandrotosi.me/debian/py2removal/index.html', '']
+            mail_preamble = ['# This is an automated script, part of the effort for the removal of Python 2 from bullseye',
+                             '#  * https://wiki.debian.org/Python/2Removal',
+                             '#  * http://sandrotosi.me/debian/py2removal/index.html',
+                             '',
+                             ]
             s = smtplib.SMTP(host='localhost', port=25)
             msg = MIMEMultipart()
             msg['From'] = 'Sandro Tosi <morph@debian.org>'
@@ -552,7 +556,7 @@ tf.init();
             print(e)
             print(dta)
     if rc_severity_body:
-        mail_preamble = ['# Part of the effort for the removal of python from bullseye',
+        mail_preamble = ['# This is an automated script, part of the effort for the removal of Python 2 from bullseye',
                          '#  * https://wiki.debian.org/Python/2Removal',
                          '#  * http://sandrotosi.me/debian/py2removal/index.html',
                          '# See https://lists.debian.org/debian-devel-announce/2019/11/msg00000.html',
