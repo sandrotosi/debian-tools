@@ -28,7 +28,7 @@ FTPDORE = regex.compile(r'RM: (?P<src>[^ ]+)(?:$| -- .*)')
 EXTRALEVEL = 2
 
 # namedtuple to hold the data we care for py2removal
-dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popcon', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps'])
+dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popcon', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps', 'blocked_bugs'])
 
 
 def log(msg):
@@ -198,7 +198,7 @@ if __name__ == '__main__':
             if common.is_python2_dep(bdep):
                 brdeps += 1
         if brdeps > 0:
-            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0))
+            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done])))
             active = True
         bins = sources[bug.source][1].replace('\n', '').split(', ')
         for bin in bins:
@@ -227,7 +227,7 @@ if __name__ == '__main__':
                             py3k_pkgs_avail = False
                     # deps from packages outside of the same source, including only binaries&sources in testing
                     real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins)) & (set(testing_latestbinpkgs) | set(testing_sources)) )
-                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps))
+                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done])))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
                 import traceback; log(traceback.print_exc())
@@ -339,6 +339,7 @@ var tfConfig = {
         'number',
         'number',
         'number',
+        'number',
         'string',
         'string'
     ],
@@ -399,6 +400,9 @@ tf.init();
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('span', title='Reverse dependencies: 1. from packages not in the same src; 2. packages available in testing'):
                                 with tag('b'): text('# real rdeps')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('span', title='Number of bugs (still open) blocked by this item'):
+                                with tag('b'): text('# blocked bugs')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('span', title='red node = package in testing; green node = package not in testing'):
                                 with tag('b'): text('Rdeps graph (level 1)')
@@ -462,6 +466,7 @@ tf.init();
                         with tag('td'): text(dta.fdeps)
                         with tag('td'): text(dta.edges_1)
                         with tag('td'): text(dta.real_rdeps)
+                        with tag('td'): text(dta.blocked_bugs)
                         with tag('td'):
                             if dta.pkg.startswith('src:'):
                                 text('no graph for src pkgs (yet)')
