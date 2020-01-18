@@ -551,25 +551,46 @@ tf.init();
 
     log('Generating control@ email to raise severity to RC...')
     rc_severity_body = []
+    rc_severity = defaultdict(list)
+    rc_dont_bump = list()
     for dta in data:
         try:
-            # skip this part if the bug is marked as `py2keep` or the severity is already `serious`
-            if dta.bugno not in py2keep_bugs_by_tag and bugs_by_bugno[dta.bugno].severity != 'serious' and not dta.pkg.endswith(('-doc', '-docs', '-common', '-examples', '-data', '-test', '-dbg')) and dta.real_rdeps == 0:
-                if dta.pkg.startswith('python-'):
-                    rc_severity_body.append(f'# {dta.pkg} is a module and has 0 external rdeps or not in testing')
-                    rc_severity_body.append(f'severity {dta.bugno} serious')
-                elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon and dta.popcon < 300:
-                    rc_severity_body.append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} < 300), and has 0 external rdeps or not in testing')
-                    rc_severity_body.append(f'severity {dta.bugno} serious')
+            # skip this part if the bug is marked as `py2keep` or a not-module package
+            if dta.bugno not in py2keep_bugs_by_tag and not dta.pkg.endswith(('-doc', '-docs', '-common', '-examples', '-data', '-test', '-dbg')):
+                # if the current package has no real rdeps and it's no part of the do-not-raise list
+                if dta.real_rdeps == 0 and dta.bugno not in rc_dont_bump:
+                    if bugs_by_bugno[dta.bugno].severity != 'serious':
+                        if dta.pkg.startswith('python-'):
+                            rc_severity[dta.bugno].append(f'# {dta.pkg} is a module and has 0 external rdeps or not in testing')
+                        elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon and dta.popcon < 300:
+                            rc_severity[dta.bugno].append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} < 300), and has 0 external rdeps or not in testing')
+                else:
+                    if dta.bugno in rc_dont_bump:
+                        continue
+                    rc_dont_bump.append(dta.bugno)
+                    if dta.bugno in rc_severity:
+                        # remove the entry if not all binary packages are leaf
+                        del rc_severity[dta.bugno]
+                    # revert to `normal` severity
+                    if bugs_by_bugno[dta.bugno].severity == 'serious':
+                        rc_severity_body.append(f'# not all bin pkgs are leaf for src:{bugs_by_bugno[dta.bugno].source}, lower severity')
+                        rc_severity_body.append(f'severity {dta.bugno} normal')
         except Exception as e:
             print(e)
             print(dta)
+    # build the control@ mail body
+    for rc_bug in rc_severity.keys():
+        for reason in rc_severity[rc_bug]:
+            rc_severity_body.append(reason)
+        rc_severity_body.append(f'severity {rc_bug} serious')
+
     if rc_severity_body:
         mail_preamble = ['# This is an automated script, part of the effort for the removal of Python 2 from bullseye',
                          '#  * https://wiki.debian.org/Python/2Removal',
                          '#  * http://sandrotosi.me/debian/py2removal/index.html',
                          '# See https://lists.debian.org/debian-devel-announce/2019/11/msg00000.html',
-                         '# for more details on this severity bump',
+                         '# and https://lists.debian.org/debian-python/2019/12/msg00076.html',
+                         '# mail threads for more details on this severity update',
                          '',
                          ]
         s = smtplib.SMTP(host='localhost', port=25)
@@ -577,7 +598,7 @@ tf.init();
         msg['From'] = 'Sandro Tosi <morph@debian.org>'
         msg['To'] = 'control@bugs.debian.org'
         msg['Cc'] = 'Sandro Tosi <morph@debian.org>'
-        msg['Subject'] = f"py2removal RC severity updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
+        msg['Subject'] = f"py2removal bugs severity updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
         msg.attach(MIMEText('\n'.join(mail_preamble + rc_severity_body), 'plain'))
         log(msg)
         s.send_message(msg)
