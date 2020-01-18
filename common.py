@@ -1,5 +1,6 @@
 import debian.deb822 as d822
 from collections import defaultdict
+import apt_pkg
 
 
 def parse_source_pkgs(distro='unstable'):
@@ -14,7 +15,7 @@ def parse_source_pkgs(distro='unstable'):
                 sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''))
             else:
                 v = sources[x['Package']][0]
-                if x['Version'] > v:
+                if apt_pkg.version_compare(x['Version'], v) > 0:
                     sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''))
 
     latestbinpkgs = set()
