@@ -28,7 +28,7 @@ FTPDORE = regex.compile(r'RM: (?P<src>[^ ]+)(?:$| -- .*)')
 EXTRALEVEL = 2
 
 # namedtuple to hold the data we care for py2removal
-dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popcon', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps', 'blocked_bugs'])
+dataitem = namedtuple('dataitem', ['bugno', 'pkg', 'edges_1', 'graph_1', 'maint', 'uplds', 'fdeps', 'popcon', 'wnppp', 'edges_N', 'graph_N', 'py3k_pkgs_avail', 'real_rdeps', 'blocked_bugs', 'in_testing'])
 
 
 def log(msg):
@@ -198,7 +198,7 @@ if __name__ == '__main__':
             if common.is_python2_dep(bdep):
                 brdeps += 1
         if brdeps > 0:
-            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done])))
+            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done]), in_testing='yes' if bug.source in testing_sources else 'no'))
             active = True
         bins = sources[bug.source][1].replace('\n', '').split(', ')
         for bin in bins:
@@ -227,7 +227,7 @@ if __name__ == '__main__':
                             py3k_pkgs_avail = False
                     # deps from packages outside of the same source, including only binaries&sources in testing
                     real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins)) & (set(testing_latestbinpkgs) | set(testing_sources)) )
-                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done])))
+                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done]), in_testing='yes' if bin in testing_latestbinpkgs else 'no'))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
                 import traceback; log(traceback.print_exc())
@@ -333,6 +333,7 @@ var tfConfig = {
         'string',
         'string',
         'string',
+        'string',
         'number',
         'string',
         'string',
@@ -383,6 +384,8 @@ tf.init();
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Binary pkg')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
+                            with tag('b'): text('in testing?')
+                        with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('py3k?')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('span', title='Latest version and PyPI classifiers Python versions'):
@@ -430,6 +433,7 @@ tf.init();
                             else:
                                 with tag('a', target='_blank', href=f"https://packages.debian.org/unstable/{dta.pkg}"):
                                     text(dta.pkg)
+                        with tag('td'): text(dta.in_testing)
                         with tag('td'):
                             if dta.py3k_pkgs_avail is None:
                                 text('')
