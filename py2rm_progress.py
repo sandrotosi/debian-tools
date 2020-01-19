@@ -136,7 +136,7 @@ if __name__ == '__main__':
         vbugs.append(total)
     # how many bugs are tagged 'pending'?
     pendings = len([bug.bug_num for bug in bugs if 'pending' in bug.tags and not bug.done])
-    plt_locator = mdates.DayLocator(interval=10)
+    plt_locator = mdates.DayLocator(interval=14)
     plt_formatter = mdates.AutoDateFormatter(plt_locator)
     fig, ax = plt.subplots()
     ax.xaxis.set_major_locator(plt_locator)
