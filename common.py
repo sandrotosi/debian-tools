@@ -45,7 +45,7 @@ def parse_source_pkgs(distro='unstable'):
 
 def is_python2_dep(dep):
     if dep.startswith(('python', 'libpython', 'cython'))\
-            and not (dep.endswith(('-doc', '-docs', '-common', '-examples', '-data', '-test', '-tpl'))
+            and not (dep.endswith(('-doc', '-docs', '-common', '-examples', '-data', '-test', '-tpl', '-localedata'))
                      or dep.startswith(('python3', 'libboost-python', 'libpython3', 'python-gi-dev', 'cython3', 'python-pip-whl', 'python-odf-tools', 'pythonpy'))):
         return dep
     return False
