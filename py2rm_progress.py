@@ -233,7 +233,7 @@ if __name__ == '__main__':
                 import traceback; log(traceback.print_exc())
                 log(f"{bug.bug_num}\t{bin}")
         if not active:
-            log(f"{bug.bug_num} has no py2 dependencies?")
+            log(f"{bug.bug_num} (src:{bug.source}) has no py2 dependencies?")
 
     if not args.no_images:
         log('Pre-processing graph for image generation...')
