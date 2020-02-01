@@ -379,7 +379,7 @@ tf.init();
                 with tag('thead'):
                     with tag('tr'):
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='RC=RC level, P=Pending, +=patch'):
+                            with tag('span', title='RC=RC level, P=Pending, +=patch, U=fixed-upstream'):
                                 with tag('b'): text('Bug No.')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('Binary pkg')
@@ -424,6 +424,8 @@ tf.init();
                                 btags.append('P')
                             if 'patch' in bugs_tags[dta.bugno]:
                                 btags.append('+')
+                            if 'fixed-upstream' in bugs_tags[dta.bugno]:
+                                btags.append('U')
                             if btags:
                                 text(' ' + ','.join(btags))
                         with tag('td'):
