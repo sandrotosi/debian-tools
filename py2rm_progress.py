@@ -215,8 +215,8 @@ if __name__ == '__main__':
                 # does the package depends on python2 packages?
                 if any([common.is_python2_dep(y.target_pkg.name) for x in deps for y in x]):
                     active = True
-                    graph_1 = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1, testing_sources=testing_sources, testing_binaries=testing_latestbinpkgs)
-                    graph_N = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, EXTRALEVEL, testing_sources=testing_sources, testing_binaries=testing_latestbinpkgs)
+                    graph_1 = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, 1, testing_sources=testing_sources, testing_binaries=testing_latestbinpkgs, unstable_sources=sources)
+                    graph_N = rdeps.generate_rdeps_graph(bin, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, EXTRALEVEL, testing_sources=testing_sources, testing_binaries=testing_latestbinpkgs, unstable_sources=sources)
 
                     # very brutal heuristic to know if debian has a py3k package already
                     py3k_pkgs_avail = None
@@ -407,10 +407,10 @@ tf.init();
                             with tag('span', title='Number of bugs (still open) blocked by this item'):
                                 with tag('b'): text('# blocked bugs')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='red node = package in testing; green node = package not in testing'):
+                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing'):
                                 with tag('b'): text('Rdeps graph (level 1)')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='red node = package in testing; green node = package not in testing'):
+                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing'):
                                 with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
                 for dta in sorted(data, key=lambda x: (x.real_rdeps, x.fdeps)):
                     with tag('tr'):
