@@ -329,7 +329,7 @@ var tfConfig = {
         text: 'Clear'
     },
     col_types: [
-        'number',
+        'string',
         'string',
         'string',
         'string',
