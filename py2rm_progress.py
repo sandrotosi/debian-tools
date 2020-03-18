@@ -549,7 +549,8 @@ tf.init();
             msg['Subject'] = f"py2removal blocks updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
             msg.attach(MIMEText('\n'.join(mail_preamble + blocks_mail_body), 'plain'))
             log(msg)
-            s.send_message(msg)
+            if not args.bugs:
+                s.send_message(msg)
 
     log('Generating control@ email to raise severity to RC...')
     rc_severity_body = []
@@ -603,6 +604,7 @@ tf.init();
         msg['Subject'] = f"py2removal bugs severity updates - {datetime.datetime.now(tz=datetime.timezone.utc)}"
         msg.attach(MIMEText('\n'.join(mail_preamble + rc_severity_body), 'plain'))
         log(msg)
-        s.send_message(msg)
+        if not args.bugs:
+            s.send_message(msg)
 
     log('Script completed')
