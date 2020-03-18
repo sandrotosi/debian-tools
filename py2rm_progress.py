@@ -172,11 +172,16 @@ if __name__ == '__main__':
     latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtstrig, sources = common.parse_source_pkgs()
     testing_latestbinpkgs, _, _, _, _, testing_sources = common.parse_source_pkgs(distro='testing')
 
+    # this will contain all the metapackages, like blends and all other dependency "farms" pkgs
+    metapackages = set()
+
     # what source produces a binary
     bin_to_src = {}
     for source in sources:
         for bin in sources[source][1].replace('\n', '').split(', '):
             bin_to_src[bin] = source
+            if bin in rdeps.cache and rdeps.cache[bin].section == 'metapackages':
+                metapackages.add(bin)
 
     log('Parsing bugs...')
 
@@ -225,8 +230,8 @@ if __name__ == '__main__':
                             py3k_pkgs_avail = True
                         else:
                             py3k_pkgs_avail = False
-                    # deps from packages outside of the same source, including only binaries&sources in testing
-                    real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins)) & (set(testing_latestbinpkgs) | set(testing_sources)) )
+                    # deps from packages outside of the same source, including only binaries&sources in testing, and not metapackages
+                    real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins) - metapackages) & (set(testing_latestbinpkgs) | set(testing_sources)) )
                     data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done]), in_testing='yes' if bin in testing_latestbinpkgs else 'no'))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
@@ -407,10 +412,10 @@ tf.init();
                             with tag('span', title='Number of bugs (still open) blocked by this item'):
                                 with tag('b'): text('# blocked bugs')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing'):
+                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing; turquoise node = metapackage'):
                                 with tag('b'): text('Rdeps graph (level 1)')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing'):
+                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing; turquoise node = metapackage'):
                                 with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
                 for dta in sorted(data, key=lambda x: (x.real_rdeps, x.fdeps)):
                     with tag('tr'):

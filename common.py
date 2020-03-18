@@ -12,11 +12,11 @@ def parse_source_pkgs(distro='unstable'):
     for suite in ['main', 'contrib', 'non-free', ]:
         for x in d822.Sources.iter_paragraphs(open(f"/var/lib/apt/lists/ftp.debian.org_debian_dists_{distro}_{suite}_source_Sources")):
             if x['Package'] not in sources:
-                sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''))
+                sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''), x['Section'])
             else:
                 v = sources[x['Package']][0]
                 if apt_pkg.version_compare(x['Version'], v) > 0:
-                    sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''))
+                    sources[x['Package']] = (x['Version'], x['Binary'], x.get('Build-Depends', ''), x.get('Build-Depends-Indep', ''), x.get('Build-Depends-Arch', ''), x.get('Testsuite-Triggers', ''), x['Maintainer'], x.get('Uploaders', ''), x['Section'])
 
     latestbinpkgs = set()
     for k in sources.keys():
