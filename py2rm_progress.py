@@ -180,7 +180,7 @@ if __name__ == '__main__':
     for source in sources:
         for bin in sources[source][1].replace('\n', '').split(', '):
             bin_to_src[bin] = source
-            if bin in rdeps.cache and rdeps.cache[bin].section == 'metapackages':
+            if bin in rdeps.cache and rdeps.cache[bin].section == 'metapackages' or sources[source][8] == 'metapackages':
                 metapackages.add(bin)
 
     log('Parsing bugs...')

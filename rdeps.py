@@ -41,17 +41,18 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
             continue
         pkg = cache[name]
         rdeps = pkg.rev_depends_list
-        same_source_bins = [x[1].split(', ') for x in unstable_sources.values() if name in x[1].split(', ')][0]
+        same_source_bins = [v[1].split(', ') for k, v in unstable_sources.items() if name in v[1].split(', ')][0]
         for rdep in rdeps:
             if rdep.parent_pkg.name not in latestbinpkgs:
                 continue
             if rdep.dep_type in RELS:
+                sourcepkg = [k for k, v in unstable_sources.items() if rdep.parent_pkg.name in v[1].split(', ')][0]
                 color = 'red'
                 if testing_binaries and rdep.parent_pkg.name not in testing_binaries:
                     color = 'green'
                 if rdep.parent_pkg.name in same_source_bins:
                     color = 'orange'
-                if rdep.parent_pkg.section == 'metapackages':
+                if rdep.parent_pkg.section == 'metapackages' or unstable_sources[sourcepkg][8] == 'metapackages':
                     color = 'turquoise'
                 graph.add_node(pydot.Node(rdep.parent_pkg.name, color=color))
                 graph.add_edge(pydot.Edge(rdep.parent_pkg.name, name, label=rdep.dep_type+f" (lvl={level})"))
