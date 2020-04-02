@@ -561,6 +561,7 @@ tf.init();
     rc_severity_body = []
     rc_severity = defaultdict(list)
     rc_dont_bump = list()
+    apps_rc_threshold = 1000
     for dta in data:
         try:
             # skip this part if the bug is marked as `py2keep` or a not-module package
@@ -571,10 +572,10 @@ tf.init();
                         if dta.pkg.startswith('python-'):
                             rc_severity[dta.bugno].append(f'# {dta.pkg} is a module and has 0 external rdeps or not in testing')
                         elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon:
-                            if dta.popcon < 300:
-                                rc_severity[dta.bugno].append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} < 300), and has 0 external rdeps or not in testing')
+                            if dta.popcon <= apps_rc_threshold:
+                                rc_severity[dta.bugno].append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} <= {apps_rc_threshold}), and has 0 external rdeps or not in testing')
                             else:
-                                log(f'{dta.pkg} is an application, has popcon = {dta.popcon}, so cannot be removed yet')
+                                log(f'{dta.pkg} is an application, has popcon = {dta.popcon}, to high to bump to RC')
                 else:
                     if dta.bugno in rc_dont_bump:
                         continue
@@ -601,6 +602,7 @@ tf.init();
                          '#  * http://sandrotosi.me/debian/py2removal/index.html',
                          '# See https://lists.debian.org/debian-devel-announce/2019/11/msg00000.html',
                          '# and https://lists.debian.org/debian-python/2019/12/msg00076.html',
+                         '# and https://lists.debian.org/debian-python/2020/03/msg00087.html',
                          '# mail threads for more details on this severity update',
                          '',
                          ]
