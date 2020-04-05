@@ -208,7 +208,7 @@ if __name__ == '__main__':
             if common.is_python2_dep(bdep):
                 brdeps += 1
         if brdeps > 0:
-            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done]), in_testing='yes' if bug.source in testing_sources else 'no'))
+            data.append(dataitem(bug.bug_num, 'src:'+bug.source, 0, None, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), brdeps, None, wnpp.get(bug.source, None), None, None, None, real_rdeps=0, blocked_bugs=[bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done], in_testing='yes' if bug.source in testing_sources else 'no'))
             active = True
         bins = sources[bug.source][1].replace('\n', '').split(', ')
         for bin in bins:
@@ -237,7 +237,7 @@ if __name__ == '__main__':
                             py3k_pkgs_avail = False
                     # deps from packages outside of the same source, including only binaries&sources in testing, and not metapackages
                     real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins) - metapackages) & (set(testing_latestbinpkgs) | set(testing_sources)) - nonmain )
-                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done]), in_testing='yes' if bin in testing_latestbinpkgs else 'no'))
+                    data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=[bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done], in_testing='yes' if bin in testing_latestbinpkgs else 'no'))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
                 import traceback; log(traceback.print_exc())
@@ -482,7 +482,10 @@ tf.init();
                         with tag('td'): text(dta.fdeps)
                         with tag('td'): text(dta.edges_1)
                         with tag('td'): text(dta.real_rdeps)
-                        with tag('td'): text(dta.blocked_bugs)
+                        with tag('td'):
+                            with tag('span',
+                                     title='\n'.join([f"{str(x)} -- {bugs_by_bugno[x].subject if x in bugs_by_bugno else '<no subject>'}" for x in dta.blocked_bugs])):
+                                text(len(dta.blocked_bugs))
                         with tag('td'):
                             if dta.pkg.startswith('src:'):
                                 text('no graph for src pkgs (yet)')
