@@ -437,7 +437,8 @@ tf.init();
                             if 'fixed-upstream' in bugs_tags[dta.bugno]:
                                 btags.append('U')
                             if btags:
-                                text(' ' + ','.join(btags))
+                                doc.asis('&nbsp;')
+                                text(','.join(btags))
                         with tag('td'):
                             if dta.pkg.startswith('src:'):
                                 with tag('a', target='_blank', href=f"https://packages.debian.org/source/sid/{dta.pkg.split(':')[1]}"):
