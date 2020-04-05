@@ -54,6 +54,8 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
                     color = 'orange'
                 if rdep.parent_pkg.section == 'metapackages' or unstable_sources[sourcepkg][8] == 'metapackages':
                     color = 'turquoise'
+                if rdep.parent_pkg.section.startswith(('contrib/', 'non-free/')):
+                    color = 'yellow4'
                 graph.add_node(pydot.Node(rdep.parent_pkg.name, color=color))
                 graph.add_edge(pydot.Edge(rdep.parent_pkg.name, name, label=rdep.dep_type+f" (lvl={level})"))
                 todo.append((rdep.parent_pkg.name, level+1))

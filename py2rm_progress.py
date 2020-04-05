@@ -175,13 +175,18 @@ if __name__ == '__main__':
     # this will contain all the metapackages, like blends and all other dependency "farms" pkgs
     metapackages = set()
 
+    nonmain = set()
+
     # what source produces a binary
     bin_to_src = {}
     for source in sources:
         for bin in sources[source][1].replace('\n', '').split(', '):
             bin_to_src[bin] = source
-            if bin in rdeps.cache and rdeps.cache[bin].section == 'metapackages' or sources[source][8] == 'metapackages':
-                metapackages.add(bin)
+            if bin in rdeps.cache:
+                if rdeps.cache[bin].section == 'metapackages' or sources[source][8] == 'metapackages':
+                    metapackages.add(bin)
+                if rdeps.cache[bin].section.startswith(('contrib/', 'non-free/')):
+                    nonmain.add(bin)
 
     log('Parsing bugs...')
 
@@ -231,7 +236,7 @@ if __name__ == '__main__':
                         else:
                             py3k_pkgs_avail = False
                     # deps from packages outside of the same source, including only binaries&sources in testing, and not metapackages
-                    real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins) - metapackages) & (set(testing_latestbinpkgs) | set(testing_sources)) )
+                    real_rdeps = len( (set(edge.get_source().replace('"', '') for edge in graph_1.get_edges()) - set(bins) - metapackages) & (set(testing_latestbinpkgs) | set(testing_sources)) - nonmain )
                     data.append(dataitem(bug.bug_num, bin, len(set(graph_1.get_edges())), graph_1, regex.sub(' \<[^<>]+\>', '', sources[bug.source][6]), regex.sub(' \<[^<>]+\>', '', sources[bug.source][7]), len(deps), popcon.package(bin).get(bin, None), wnpp.get(bug.source, None), len(set(graph_N.get_edges())), graph_N, py3k_pkgs_avail, real_rdeps=real_rdeps, blocked_bugs=len([bug for bug in bugs_by_bugno[bug.bug_num].blocks if bug not in bugs_done]), in_testing='yes' if bin in testing_latestbinpkgs else 'no'))
             except Exception as e:
                 log(f"error processing {bin}, {e}")
@@ -406,16 +411,16 @@ tf.init();
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('b'): text('# rdeps')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='Reverse dependencies: 1. from packages not in the same src; 2. packages available in testing'):
+                            with tag('span', title='Reverse dependencies: 1. from packages not in the same src; 2. packages available in testing; 3. only for package in main'):
                                 with tag('b'): text('# real rdeps')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
                             with tag('span', title='Number of bugs (still open) blocked by this item'):
                                 with tag('b'): text('# blocked bugs')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing; turquoise node = metapackage'):
+                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing; turquoise node = metapackage; yellow-ish = package not in main'):
                                 with tag('b'): text('Rdeps graph (level 1)')
                         with tag('th', _sorttype="string", style="cursor: pointer;"):
-                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing; turquoise node = metapackage'):
+                            with tag('span', title='red node = package in testing; orange node = package from the same source; green node = package not in testing; turquoise node = metapackage; yellow-ish = package not in main'):
                                 with tag('b'): text(f"Rdeps graph (level {EXTRALEVEL})")
                 for dta in sorted(data, key=lambda x: (x.real_rdeps, x.fdeps)):
                     with tag('tr'):
