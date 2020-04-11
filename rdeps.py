@@ -65,6 +65,8 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
                 color = 'green'
             if rbdep in same_source_bins:
                 color = 'orange'
+            if rbdep in cache and cache[rbdep].section.startswith(('contrib/', 'non-free/')):
+                color = 'yellow4'
             graph.add_node(pydot.Node(rbdep, color=color))
             graph.add_edge(pydot.Edge(rbdep, name, label=f"Build-Depends (lvl={level})"))
         for rbdepi in rbdepsi[name]:
