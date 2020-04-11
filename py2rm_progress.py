@@ -106,6 +106,10 @@ if __name__ == '__main__':
     log(f"Found {len(py2keep_bugs_by_tag)} `py2keep` bugs, getting status...")
     py2keep_bugs = debianbts.get_status(py2keep_bugs_by_tag)
 
+    for py2keep_bug in py2keep_bugs:
+        if not py2keep_bug.done:
+            log(f'{py2keep_bug.bug_num} "{py2keep_bug.subject}"')
+
     # get the tags, so we can show them on the table
     bugs_tags = {}
     bugs_blockedby = {}
