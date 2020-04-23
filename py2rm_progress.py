@@ -187,9 +187,11 @@ if __name__ == '__main__':
         for bin in sources[source][1].replace('\n', '').split(', '):
             bin_to_src[bin] = source
             if bin in rdeps.cache:
-                if rdeps.cache[bin].section == 'metapackages' or sources[source][8] == 'metapackages':
+                if not rdeps.cache[bin].version_list:
+                    continue
+                if rdeps.cache[bin].version_list[0].section == 'metapackages' or sources[source][8] == 'metapackages':
                     metapackages.add(bin)
-                if rdeps.cache[bin].section.startswith(('contrib/', 'non-free/')):
+                if rdeps.cache[bin].version_list[0].section.startswith(('contrib/', 'non-free/')):
                     nonmain.add(bin)
 
     log('Parsing bugs...')

@@ -52,9 +52,9 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
                     color = 'green'
                 if rdep.parent_pkg.name in same_source_bins:
                     color = 'orange'
-                if rdep.parent_pkg.section == 'metapackages' or unstable_sources[sourcepkg][8] == 'metapackages':
+                if rdep.parent_ver.section == 'metapackages' or unstable_sources[sourcepkg][8] == 'metapackages':
                     color = 'turquoise'
-                if rdep.parent_pkg.section.startswith(('contrib/', 'non-free/')):
+                if rdep.parent_ver.section.startswith(('contrib/', 'non-free/')):
                     color = 'yellow4'
                 graph.add_node(pydot.Node(rdep.parent_pkg.name, color=color))
                 graph.add_edge(pydot.Edge(rdep.parent_pkg.name, name, label=rdep.dep_type+f" (lvl={level})"))
@@ -65,7 +65,7 @@ def generate_rdeps_graph(pkg_name, latestbinpkgs, rbdeps, rbdepsi, rbdepsa, rtst
                 color = 'green'
             if rbdep in same_source_bins:
                 color = 'orange'
-            if rbdep in cache and cache[rbdep].section.startswith(('contrib/', 'non-free/')):
+            if rbdep in cache and cache[rbdep].version_list and cache[rbdep].version_list[0].section.startswith(('contrib/', 'non-free/')):
                 color = 'yellow4'
             graph.add_node(pydot.Node(rbdep, color=color))
             graph.add_edge(pydot.Edge(rbdep, name, label=f"Build-Depends (lvl={level})"))
