@@ -590,7 +590,7 @@ tf.init();
                             if dta.popcon <= apps_rc_threshold:
                                 rc_severity[dta.bugno].append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} <= {apps_rc_threshold}), and has 0 external rdeps or not in testing')
                             else:
-                                log(f'{dta.pkg} is an application, has popcon = {dta.popcon}, to high to bump to RC')
+                                log(f'{dta.pkg} is an application, has popcon = {dta.popcon}, too high to bump to RC')
                 else:
                     if dta.bugno in rc_dont_bump:
                         continue
