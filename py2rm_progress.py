@@ -586,11 +586,8 @@ tf.init();
                     if bugs_by_bugno[dta.bugno].severity != 'serious':
                         if dta.pkg.startswith('python-'):
                             rc_severity[dta.bugno].append(f'# {dta.pkg} is a module and has 0 external rdeps or not in testing')
-                        elif not dta.pkg.startswith(('python-', 'src:')) and dta.popcon:
-                            if dta.popcon <= apps_rc_threshold:
-                                rc_severity[dta.bugno].append(f'# {dta.pkg} is an application, has low popcon ({dta.popcon} <= {apps_rc_threshold}), and has 0 external rdeps or not in testing')
-                            else:
-                                log(f'{dta.pkg} is an application, has popcon = {dta.popcon}, too high to bump to RC')
+                        elif not dta.pkg.startswith(('python-', 'src:')):
+                            rc_severity[dta.bugno].append(f'# {dta.pkg} is an application and has 0 external rdeps or not in testing')
                 else:
                     if dta.bugno in rc_dont_bump:
                         continue
